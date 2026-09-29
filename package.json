@@ -1,0 +1,28 @@
+{
+  "name": "hr-hub-employee-performance-dashboard",
+  "version": "1.0.0",
+  "description": "HR Hub - Modern Data-Driven HR Analytics & Employee Performance Dashboard (SkillOrbit Capstone)",
+  "scripts": {
+    "install:all": "cd backend && npm install && cd ../frontend && npm install",
+    "seed": "cd backend && npm run seed",
+    "test:backend": "cd backend && npm test",
+    "test:stage2": "cd backend && node test/stage2_db_tasks.test.js",
+    "test:stage3": "cd backend && node test/stage3_kpi_math.test.js",
+    "test:stage5": "cd backend && node test/stage5_integration.test.js",
+    "build": "cd frontend && npm run build",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run dev"
+  },
+  "keywords": [
+    "hr-analytics",
+    "employee-performance",
+    "dashboard",
+    "react",
+    "nodejs",
+    "mongodb",
+    "chartjs",
+    "capstone"
+  ],
+  "author": "SkillOrbit Capstone Candidate",
+  "license": "MIT"
+}
