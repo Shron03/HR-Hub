@@ -1,7 +1,7 @@
 const API_BASE = '/api';
 
 export const api = {
-  // Auth
+  // Authentication
   async demoLogin(role = 'HR Director') {
     const res = await fetch(`${API_BASE}/auth/demo-login`, {
       method: 'POST',
@@ -20,7 +20,16 @@ export const api = {
     return res.json();
   },
 
-  // Employees (Module 1)
+  async register(userData) {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData)
+    });
+    return res.json();
+  },
+
+  // Employees Directory & Records
   async getEmployees(params = {}) {
     const query = new URLSearchParams(params).toString();
     const res = await fetch(`${API_BASE}/employees?${query}`);
@@ -57,7 +66,7 @@ export const api = {
     return res.json();
   },
 
-  // Performance (Module 2)
+  // Real-Time Performance & KPI Simulator
   async updateMetrics(id, metrics) {
     const res = await fetch(`${API_BASE}/performance/${id}/metrics`, {
       method: 'PUT',
@@ -85,27 +94,78 @@ export const api = {
     return res.json();
   },
 
-  // Analytics (Module 3)
+  // Analytics
   async getDashboardAnalytics() {
     const res = await fetch(`${API_BASE}/analytics/dashboard`);
     return res.json();
   },
 
-  // Insights (Module 4)
+  // Insights
   async getInsights() {
     const res = await fetch(`${API_BASE}/insights`);
     return res.json();
   },
 
-  // Reports (Module 5)
+  // Monthly Reports
   async getMonthlyReport(month = 'Dec') {
     const res = await fetch(`${API_BASE}/reports/monthly?month=${month}`);
     return res.json();
   },
 
-  // Reset / Re-seed Demo Data
-  async resetDemoData() {
-    const res = await fetch(`${API_BASE}/reports/seed/reset`, {
+  // Leave Management & Requests
+  async getLeaves() {
+    const res = await fetch(`${API_BASE}/leaves`);
+    return res.json();
+  },
+
+  async submitLeave(leaveData) {
+    const res = await fetch(`${API_BASE}/leaves`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(leaveData)
+    });
+    return res.json();
+  },
+
+  async updateLeaveStatus(leaveId, status, decisionNote = '') {
+    const res = await fetch(`${API_BASE}/leaves/${leaveId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, decisionNote })
+    });
+    return res.json();
+  },
+
+  async getNotifications() {
+    const res = await fetch(`${API_BASE}/leaves/notifications`);
+    return res.json();
+  },
+
+  // Feedback & Appraisals
+  async sendFeedback(feedbackData) {
+    const res = await fetch(`${API_BASE}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(feedbackData)
+    });
+    return res.json();
+  },
+
+  async getEmployeeFeedbacks(employeeId) {
+    const res = await fetch(`${API_BASE}/feedback/${employeeId}`);
+    return res.json();
+  },
+
+  // Demo Data Lifecycle (Zero-data state & 15-person Demo)
+  async seedDemoData() {
+    const res = await fetch(`${API_BASE}/employees/seed-demo`, {
+      method: 'POST'
+    });
+    return res.json();
+  },
+
+  async clearAllEmployees() {
+    const res = await fetch(`${API_BASE}/employees/clear-all`, {
       method: 'POST'
     });
     return res.json();

@@ -12,15 +12,15 @@ export const connectDB = async () => {
       const conn = await mongoose.connect(uri, {
         serverSelectionTimeoutMS: 5000,
       });
-      console.log(`✅ MongoDB Connected to Atlas/External: ${conn.connection.host}`);
+      console.log(`[DB] MongoDB Connected to Atlas/External: ${conn.connection.host}`);
       return conn;
     } catch (err) {
-      console.warn(`⚠️ Failed to connect to external MongoDB URI (${err.message}). Falling back to Embedded In-Memory MongoDB.`);
+      console.warn(`[DB WARNING] Failed to connect to external MongoDB URI (${err.message}). Falling back to Embedded In-Memory MongoDB.`);
     }
   }
 
   try {
-    console.log('Initializing Embedded In-Memory MongoDB engine...');
+    console.log('[DB] Initializing Embedded In-Memory MongoDB engine...');
     mongoMemoryServer = await MongoMemoryServer.create({
       instance: {
         dbName: 'hr_hub_db'
@@ -28,10 +28,10 @@ export const connectDB = async () => {
     });
     const memoryUri = mongoMemoryServer.getUri();
     const conn = await mongoose.connect(memoryUri);
-    console.log(`✅ Embedded In-Memory MongoDB running at: ${memoryUri}`);
+    console.log(`[DB] Embedded In-Memory MongoDB running at: ${memoryUri}`);
     return conn;
   } catch (error) {
-    console.error('❌ MongoDB Connection Error:', error);
+    console.error('[DB ERROR] MongoDB Connection Error:', error);
     process.exit(1);
   }
 };
@@ -43,6 +43,6 @@ export const closeDB = async () => {
       await mongoMemoryServer.stop();
     }
   } catch (error) {
-    console.error('Error closing DB:', error);
+    console.error('[DB ERROR] Error closing DB:', error);
   }
 };

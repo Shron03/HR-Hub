@@ -12,6 +12,8 @@ import performanceRoutes from './routes/performanceRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
 import insightRoutes from './routes/insightRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import leaveRoutes from './routes/leaveRoutes.js';
+import feedbackRoutes from './routes/feedbackRoutes.js';
 
 dotenv.config();
 
@@ -38,6 +40,8 @@ app.use('/api/performance', performanceRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/insights', insightRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/leaves', leaveRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -51,8 +55,7 @@ app.get('/health', (req, res) => {
 
 app.get('/', (req, res) => {
   res.json({
-    message: 'Welcome to HR Hub - Employee Performance Dashboard API',
-    documentation: '/api/docs',
+    message: 'Welcome to HR Hub API',
     version: '1.0.0',
     endpoints: [
       '/api/auth',
@@ -60,7 +63,9 @@ app.get('/', (req, res) => {
       '/api/performance',
       '/api/analytics',
       '/api/insights',
-      '/api/reports'
+      '/api/reports',
+      '/api/leaves',
+      '/api/feedback'
     ]
   });
 });
@@ -89,8 +94,8 @@ const startServer = async () => {
     }
 
     const server = app.listen(PORT, () => {
-      console.log(`🚀 HR Hub Backend Server running on port ${PORT}`);
-      console.log(`📡 Health Check: http://localhost:${PORT}/health`);
+      console.log(`HR Hub Backend Server running on port ${PORT}`);
+      console.log(`Health Check: http://localhost:${PORT}/health`);
     });
 
     return server;

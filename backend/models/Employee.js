@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const TaskSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  project: { type: String, default: 'Internal Operations' },
+  project: { type: String, default: 'Internal Project' },
   deadline: { type: Date },
   status: {
     type: String,
@@ -25,6 +25,36 @@ const MonthlyHistorySchema = new mongoose.Schema({
   overallScore: { type: Number, min: 0, max: 100, required: true }
 });
 
+const FeedbackSchema = new mongoose.Schema({
+  from: { type: String, default: 'HR Director' },
+  message: { type: String, required: true },
+  category: {
+    type: String,
+    enum: ['Appraisal', 'Recognition', 'Improvement Plan', 'General Notice'],
+    default: 'Recognition'
+  },
+  date: { type: Date, default: Date.now }
+});
+
+const LeaveRequestSchema = new mongoose.Schema({
+  type: {
+    type: String,
+    enum: ['Casual Leave', 'Sick Leave', 'Privilege Leave', 'Work From Home'],
+    default: 'Casual Leave'
+  },
+  reason: { type: String, required: true },
+  startDate: { type: String, required: true },
+  endDate: { type: String, required: true },
+  days: { type: Number, default: 1 },
+  status: {
+    type: String,
+    enum: ['Pending', 'Approved', 'Rejected'],
+    default: 'Pending'
+  },
+  appliedAt: { type: Date, default: Date.now },
+  decisionNote: { type: String, default: '' }
+});
+
 const EmployeeSchema = new mongoose.Schema({
   employeeId: {
     type: String,
@@ -44,77 +74,116 @@ const EmployeeSchema = new mongoose.Schema({
     trim: true,
     lowercase: true
   },
-  phone: { type: String, default: '+1 (555) 000-0000' },
+  phone: { type: String, default: '+91 98765 43210' },
   department: {
     type: String,
     required: [true, 'Department is required'],
-    enum: ['Engineering', 'Product', 'Marketing', 'Sales', 'Human Resources', 'Design', 'Finance']
+    enum: ['Engineering', 'Product', 'Marketing', 'Sales', 'Human Resources']
   },
   role: {
     type: String,
     required: [true, 'Role title is required'],
     trim: true
   },
-  avatar: { type: String, default: '' },
+  initials: { type: String, default: 'EM' },
+  avatarBg: { type: String, default: '#2563eb' },
   joinDate: { type: Date, default: Date.now },
   status: {
     type: String,
     enum: ['Active', 'On Leave', 'Probation', 'Terminated'],
     default: 'Active'
   },
-  salary: { type: Number, default: 75000 },
-  location: { type: String, default: 'Headquarters' },
-  managerName: { type: String, default: 'Director of Operations' },
+  salary: { type: Number, default: 850000 }, // Annual CTC in INR
+  location: { type: String, default: 'Bengaluru, India' },
+  managerName: { type: String, default: 'Executive Committee' },
   experienceYears: { type: Number, default: 3 },
-  metrics: {
-    attendanceRate: { type: Number, min: 0, max: 100, default: 90 },
-    taskCompletionRate: { type: Number, min: 0, max: 100, default: 85 },
-    productivityScore: { type: Number, min: 0, max: 100, default: 88 },
-    projectContribution: { type: Number, min: 0, max: 100, default: 82 },
-    workEfficiency: { type: Number, min: 0, max: 100, default: 86 },
-    overallScore: { type: Number, min: 0, max: 100, default: 86.2 }
+  
+  // Real-time KPI Data based on Tasks Given/Completed and Review Score (0.0 to 10.0)
+  kpiData: {
+    tasksGiven: { type: Number, default: 20 },
+    tasksCompleted: { type: Number, default: 18 },
+    reviewScore: { type: Number, min: 0, max: 10, default: 8.5 }, // 0.0 to 10.0 scale, 0.1 step
+    attendanceRate: { type: Number, min: 0, max: 100, default: 92 },
+    projectContribution: { type: Number, min: 0, max: 100, default: 85 },
+    workEfficiency: { type: Number, min: 0, max: 100, default: 86 }
   },
+
+  metrics: {
+    attendanceRate: { type: Number, min: 0, max: 100, default: 92 },
+    taskCompletionRate: { type: Number, min: 0, max: 100, default: 90 },
+    productivityScore: { type: Number, min: 0, max: 100, default: 85 },
+    projectContribution: { type: Number, min: 0, max: 100, default: 85 },
+    workEfficiency: { type: Number, min: 0, max: 100, default: 86 },
+    overallScore: { type: Number, min: 0, max: 100, default: 88 }
+  },
+
   performanceCategory: {
     type: String,
     enum: ['Exceptional', 'Strong Performer', 'Meets Expectations', 'Needs Improvement', 'Critical Attention'],
     default: 'Strong Performer'
   },
+
   tasks: [TaskSchema],
   monthlyHistory: [MonthlyHistorySchema],
+  feedbacks: [FeedbackSchema],
+  leaveRequests: [LeaveRequestSchema],
   tags: [{ type: String }],
   notes: { type: String, default: '' }
 }, {
   timestamps: true
 });
 
-// Calculate Overall Performance Score & Category automatically before saving
+// Auto-derive Initials & Performance KPI before saving
 EmployeeSchema.pre('save', function (next) {
-  if (this.metrics) {
-    const { attendanceRate = 90, taskCompletionRate = 85, productivityScore = 85, projectContribution = 80, workEfficiency = 85 } = this.metrics;
-    
-    // Formula weighted: Attendance (20%), Task Completion (25%), Productivity (25%), Project Contribution (15%), Work Efficiency (15%)
-    const calculatedOverall = Math.round(
-      (attendanceRate * 0.20) +
-      (taskCompletionRate * 0.25) +
-      (productivityScore * 0.25) +
-      (projectContribution * 0.15) +
-      (workEfficiency * 0.15)
-    );
-    
-    this.metrics.overallScore = calculatedOverall;
-
-    if (calculatedOverall >= 92) {
-      this.performanceCategory = 'Exceptional';
-    } else if (calculatedOverall >= 82) {
-      this.performanceCategory = 'Strong Performer';
-    } else if (calculatedOverall >= 70) {
-      this.performanceCategory = 'Meets Expectations';
-    } else if (calculatedOverall >= 60) {
-      this.performanceCategory = 'Needs Improvement';
-    } else {
-      this.performanceCategory = 'Critical Attention';
+  // Generate initials from Indian full name
+  if (this.name) {
+    const parts = this.name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      this.initials = `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    } else if (parts.length === 1 && parts[0].length >= 1) {
+      this.initials = parts[0].substring(0, 2).toUpperCase();
     }
   }
+
+  // Calculate task completion rate and review percent from kpiData
+  const given = this.kpiData?.tasksGiven || 20;
+  const completed = this.kpiData?.tasksCompleted || 18;
+  const review = this.kpiData?.reviewScore !== undefined ? this.kpiData.reviewScore : 8.5;
+  const att = this.kpiData?.attendanceRate || 92;
+  const contrib = this.kpiData?.projectContribution || 85;
+  const eff = this.kpiData?.workEfficiency || 86;
+
+  const taskRate = given > 0 ? Math.min(100, Math.round((completed / given) * 100)) : 100;
+  const reviewPercent = Math.min(100, Math.round(review * 10)); // e.g. 8.5 -> 85%
+
+  // Update metrics object
+  this.metrics.attendanceRate = att;
+  this.metrics.taskCompletionRate = taskRate;
+  this.metrics.productivityScore = reviewPercent;
+  this.metrics.projectContribution = contrib;
+  this.metrics.workEfficiency = eff;
+
+  // Overall Score Formula: Attendance (20%) + Task Completion (40%) + HR Review (40%)
+  const calculatedOverall = Math.round(
+    (att * 0.20) +
+    (taskRate * 0.40) +
+    (reviewPercent * 0.40)
+  );
+
+  this.metrics.overallScore = calculatedOverall;
+
+  if (calculatedOverall >= 92) {
+    this.performanceCategory = 'Exceptional';
+  } else if (calculatedOverall >= 82) {
+    this.performanceCategory = 'Strong Performer';
+  } else if (calculatedOverall >= 70) {
+    this.performanceCategory = 'Meets Expectations';
+  } else if (calculatedOverall >= 60) {
+    this.performanceCategory = 'Needs Improvement';
+  } else {
+    this.performanceCategory = 'Critical Attention';
+  }
+
   next();
 });
 

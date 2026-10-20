@@ -1,22 +1,22 @@
-// Stage 2: Database Persistence & Task Lifecycle Test
+// Verification Check 2: Database Persistence & Task Management
 const BASE_URL = 'http://localhost:5000';
 
 async function testDatabaseAndTasks() {
-  console.log('🧪 Running Verification Check 2: Database Persistence & Task Management...\n');
+  console.log('[TEST] Running Verification Check 2: Database Persistence & Task Management...\n');
 
   // 1. Create a dynamic test employee
   const testEmpData = {
     employeeId: 'TEST-EMP-999',
-    name: 'Verification Tester',
-    email: 'tester.verify@hrhub.io',
+    name: 'Vikram Tester',
+    email: 'tester.verify@hrhub.in',
     department: 'Engineering',
     role: 'Quality Automation Lead',
-    metrics: {
-      attendanceRate: 95,
-      taskCompletionRate: 80,
-      productivityScore: 85,
-      projectContribution: 80,
-      workEfficiency: 85
+    salary: 950000,
+    kpiData: {
+      tasksGiven: 20,
+      tasksCompleted: 18,
+      reviewScore: 8.5,
+      attendanceRate: 95
     }
   };
 
@@ -29,7 +29,7 @@ async function testDatabaseAndTasks() {
   const createData = await createRes.json();
   if (!createData.success) throw new Error(`Create failed: ${createData.message}`);
   const empId = createData.employee._id;
-  console.log(`  ✅ Employee created: ${testEmpData.name} (_id: ${empId})`);
+  console.log(`- Employee created: ${testEmpData.name} (id: ${empId})`);
 
   // 2. Add Task 1 (Completed)
   const task1Res = await fetch(`${BASE_URL}/api/performance/${empId}/tasks`, {
@@ -54,18 +54,18 @@ async function testDatabaseAndTasks() {
   if (updatedEmp.employee.metrics.taskCompletionRate !== 50) {
     throw new Error(`Expected task completion rate 50%, got ${updatedEmp.employee.metrics.taskCompletionRate}%`);
   }
-  console.log(`  ✅ Task completion dynamically calculated: ${updatedEmp.employee.metrics.taskCompletionRate}% (1 of 2 completed)`);
+  console.log(`- Task completion dynamically calculated: ${updatedEmp.employee.metrics.taskCompletionRate}% (1 of 2 completed)`);
 
   // 4. Clean up: Delete test employee
   const delRes = await fetch(`${BASE_URL}/api/employees/${empId}`, { method: 'DELETE' });
   const delData = await delRes.json();
   if (!delData.success) throw new Error('Failed to delete test employee');
-  console.log(`  ✅ Test employee purged cleanly: ${delData.employeeId}`);
+  console.log(`- Test employee purged cleanly: ${delData.employeeId}`);
 
-  console.log('\n🎉 Verification Check 2: PASSED!\n');
+  console.log('\n[PASS] Verification Check 2: Database Persistence & Task Management Verified.\n');
 }
 
 testDatabaseAndTasks().catch(err => {
-  console.error('❌ Check 2 FAILED:', err);
+  console.error('[ERROR] Check 2 FAILED:', err);
   process.exit(1);
 });

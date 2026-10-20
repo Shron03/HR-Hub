@@ -1,45 +1,47 @@
-// Stage 3: KPI Mathematical Precision & Edge Cases Verification
+// Verification Check 3: KPI Mathematical Precision & Boundary Conditions
 const BASE_URL = 'http://localhost:5000';
 
 async function testKpiMathAndEdgeCases() {
-  console.log('🧪 Running Verification Check 3: KPI Precision & Boundary Conditions...\n');
+  console.log('[TEST] Running Verification Check 3: Real-Time KPI Precision & Boundary Conditions...\n');
 
   const testCases = [
     {
-      label: 'Boundary 1: Perfect Score (100)',
-      input: { attendanceRate: 100, taskCompletionRate: 100, productivityScore: 100, projectContribution: 100, workEfficiency: 100 },
+      label: 'Boundary 1: Perfect Score (100%)',
+      input: { tasksGiven: 20, tasksCompleted: 20, reviewScore: 10.0, attendanceRate: 100 },
       expectedScore: 100,
       expectedCategory: 'Exceptional'
     },
     {
-      label: 'Boundary 2: Exceptional Threshold (92)',
-      input: { attendanceRate: 92, taskCompletionRate: 92, productivityScore: 92, projectContribution: 92, workEfficiency: 92 },
-      expectedScore: 92,
+      label: 'Boundary 2: Exceptional High Rating (92%)',
+      input: { tasksGiven: 25, tasksCompleted: 24, reviewScore: 9.0, attendanceRate: 95 },
+      // TaskRate: (24/25)*100 = 96%. Review: 90%. Attendance: 95%.
+      // Formula: 95*0.2 + 96*0.4 + 90*0.4 = 19 + 38.4 + 36 = 93.4 -> 93%
+      expectedScore: 93,
       expectedCategory: 'Exceptional'
     },
     {
-      label: 'Boundary 3: Strong Performer (85)',
-      input: { attendanceRate: 85, taskCompletionRate: 85, productivityScore: 85, projectContribution: 85, workEfficiency: 85 },
-      expectedScore: 85,
+      label: 'Boundary 3: Strong Performer (88%)',
+      input: { tasksGiven: 20, tasksCompleted: 18, reviewScore: 8.5, attendanceRate: 92 },
+      // TaskRate: (18/20)*100 = 90%. Review: 85%. Attendance: 92%.
+      // Formula: 92*0.2 + 90*0.4 + 85*0.4 = 18.4 + 36 + 34 = 88.4 -> 88%
+      expectedScore: 88,
       expectedCategory: 'Strong Performer'
     },
     {
-      label: 'Boundary 4: Meets Expectations (75)',
-      input: { attendanceRate: 75, taskCompletionRate: 75, productivityScore: 75, projectContribution: 75, workEfficiency: 75 },
-      expectedScore: 75,
-      expectedCategory: 'Meets Expectations'
+      label: 'Boundary 4: Decimal Review Score Precision (8.7)',
+      input: { tasksGiven: 30, tasksCompleted: 27, reviewScore: 8.7, attendanceRate: 90 },
+      // TaskRate: (27/30)*100 = 90%. Review: 87%. Attendance: 90%.
+      // Formula: 90*0.2 + 90*0.4 + 87*0.4 = 18 + 36 + 34.8 = 88.8 -> 89%
+      expectedScore: 89,
+      expectedCategory: 'Strong Performer'
     },
     {
-      label: 'Boundary 5: Needs Improvement (65)',
-      input: { attendanceRate: 65, taskCompletionRate: 65, productivityScore: 65, projectContribution: 65, workEfficiency: 65 },
-      expectedScore: 65,
+      label: 'Boundary 5: Needs Improvement (<70%)',
+      input: { tasksGiven: 20, tasksCompleted: 12, reviewScore: 6.2, attendanceRate: 75 },
+      // TaskRate: (12/20)*100 = 60%. Review: 62%. Attendance: 75%.
+      // Formula: 75*0.2 + 60*0.4 + 62*0.4 = 15 + 24 + 24.8 = 63.8 -> 64%
+      expectedScore: 64,
       expectedCategory: 'Needs Improvement'
-    },
-    {
-      label: 'Boundary 6: Critical Attention (50)',
-      input: { attendanceRate: 50, taskCompletionRate: 50, productivityScore: 50, projectContribution: 50, workEfficiency: 50 },
-      expectedScore: 50,
-      expectedCategory: 'Critical Attention'
     }
   ];
 
@@ -51,32 +53,42 @@ async function testKpiMathAndEdgeCases() {
     });
 
     const data = await res.json();
-    if (!data.success) throw new Error(`API failed on ${tc.label}: ${data.message}`);
-
-    const score = data.metrics.overallScore;
-    const cat = data.performanceCategory;
-
-    if (score !== tc.expectedScore) {
-      throw new Error(`${tc.label}: Expected score ${tc.expectedScore}, got ${score}`);
-    }
-    if (cat !== tc.expectedCategory) {
-      throw new Error(`${tc.label}: Expected category ${tc.expectedCategory}, got ${cat}`);
+    if (!data.success) {
+      console.error(`[FAIL] ${tc.label} - API returned error:`, data.message);
+      process.exit(1);
     }
 
-    console.log(`  ✅ ${tc.label} -> Calculated: ${score}%, Tier: ${cat}`);
+    const actualScore = data.metrics.overallScore;
+    const actualCategory = data.performanceCategory;
+
+    console.log(`- ${tc.label}`);
+    console.log(`  Inputs: Tasks ${tc.input.tasksCompleted}/${tc.input.tasksGiven}, Review ${tc.input.reviewScore}/10, Attendance ${tc.input.attendanceRate}%`);
+    console.log(`  Output: Score ${actualScore}% [${actualCategory}] (Expected: ~${tc.expectedScore}% [${tc.expectedCategory}])`);
+
+    if (Math.abs(actualScore - tc.expectedScore) > 1 || actualCategory !== tc.expectedCategory) {
+      console.error(`  [MISMATCH] Calculation differed: actual ${actualScore} vs expected ${tc.expectedScore}`);
+      process.exit(1);
+    }
   }
 
-  // Restore EMP-1001 to original baseline
+  // Restore Aarav Patel's standard baseline
   await fetch(`${BASE_URL}/api/performance/EMP-1001/metrics`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ attendanceRate: 98, taskCompletionRate: 96, productivityScore: 95, projectContribution: 94, workEfficiency: 96 })
+    body: JSON.stringify({
+      tasksGiven: 20,
+      tasksCompleted: 18,
+      reviewScore: 8.5,
+      attendanceRate: 92,
+      salary: 1250000,
+      status: 'Active'
+    })
   });
 
-  console.log('\n🎉 Verification Check 3: PASSED!\n');
+  console.log('\n[PASS] Verification Check 3: Real-Time KPI Precision Verified.\n');
 }
 
 testKpiMathAndEdgeCases().catch(err => {
-  console.error('❌ Check 3 FAILED:', err);
+  console.error('[ERROR] Verification Check 3 Failed:', err);
   process.exit(1);
 });

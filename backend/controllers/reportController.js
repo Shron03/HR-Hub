@@ -26,10 +26,10 @@ export const getMonthlyReportData = async (req, res) => {
 
     const employeeRoster = employees.map(emp => {
       const historyItem = emp.monthlyHistory?.find(h => h.month === month) || {
-        attendance: emp.metrics.attendanceRate,
-        productivity: emp.metrics.productivityScore,
+        attendance: emp.metrics?.attendanceRate || 90,
+        productivity: emp.metrics?.productivityScore || 85,
         tasksCompleted: 8,
-        overallScore: emp.metrics.overallScore
+        overallScore: emp.metrics?.overallScore || 85
       };
 
       totalScore += historyItem.overallScore;
@@ -47,6 +47,8 @@ export const getMonthlyReportData = async (req, res) => {
         name: emp.name,
         role: emp.role,
         department: emp.department,
+        initials: emp.initials,
+        avatarBg: emp.avatarBg,
         status: emp.status,
         attendance: historyItem.attendance,
         productivity: historyItem.productivity,
@@ -73,7 +75,7 @@ export const getMonthlyReportData = async (req, res) => {
       reportMetadata: {
         reportPeriod: `${month} 2026`,
         generatedAt: new Date().toISOString(),
-        organization: 'HR Hub / SkillOrbit',
+        organization: 'HR Hub Enterprise',
         totalHeadcount,
         avgScore,
         avgAttendance,

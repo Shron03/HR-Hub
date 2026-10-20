@@ -12,26 +12,48 @@ const findEmployee = async (id) => {
 export const updateEmployeeMetrics = async (req, res) => {
   try {
     const { id } = req.params;
-    const { attendanceRate, taskCompletionRate, productivityScore, projectContribution, workEfficiency } = req.body;
+    const {
+      tasksGiven,
+      tasksCompleted,
+      reviewScore,
+      attendanceRate,
+      projectContribution,
+      workEfficiency,
+      salary,
+      status
+    } = req.body;
 
     const employee = await findEmployee(id);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    if (attendanceRate !== undefined) employee.metrics.attendanceRate = Number(attendanceRate);
-    if (taskCompletionRate !== undefined) employee.metrics.taskCompletionRate = Number(taskCompletionRate);
-    if (productivityScore !== undefined) employee.metrics.productivityScore = Number(productivityScore);
-    if (projectContribution !== undefined) employee.metrics.projectContribution = Number(projectContribution);
-    if (workEfficiency !== undefined) employee.metrics.workEfficiency = Number(workEfficiency);
+    // HR can update salary and status
+    if (salary !== undefined) employee.salary = Number(salary);
+    if (status !== undefined) employee.status = status;
 
+    // Update kpiData
+    if (!employee.kpiData) {
+      employee.kpiData = {};
+    }
+
+    if (tasksGiven !== undefined) employee.kpiData.tasksGiven = Math.max(1, Number(tasksGiven));
+    if (tasksCompleted !== undefined) employee.kpiData.tasksCompleted = Math.max(0, Number(tasksCompleted));
+    if (reviewScore !== undefined) employee.kpiData.reviewScore = Math.min(10, Math.max(0, Number(reviewScore)));
+    if (attendanceRate !== undefined) employee.kpiData.attendanceRate = Math.min(100, Math.max(0, Number(attendanceRate)));
+    if (projectContribution !== undefined) employee.kpiData.projectContribution = Number(projectContribution);
+    if (workEfficiency !== undefined) employee.kpiData.workEfficiency = Number(workEfficiency);
+
+    // Save triggers pre-save hook which computes taskCompletionRate, productivityScore, overallScore, and performanceCategory
     await employee.save();
 
     res.json({
       success: true,
-      message: 'Performance metrics updated and recalculated',
+      message: 'Performance metrics and evaluation auto-calculated',
+      kpiData: employee.kpiData,
       metrics: employee.metrics,
-      performanceCategory: employee.performanceCategory
+      performanceCategory: employee.performanceCategory,
+      employee
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -50,19 +72,17 @@ export const addTask = async (req, res) => {
 
     employee.tasks.push({
       title,
-      project: project || 'General',
+      project: project || 'Internal Project',
       deadline: deadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       priority: priority || 'Medium',
       status: status || 'In Progress',
       efficiencyRating: efficiencyRating !== undefined ? Number(efficiencyRating) : 85
     });
 
-    // Re-evaluate task completion rate
-    const totalTasks = employee.tasks.length;
-    const completedTasks = employee.tasks.filter(t => t.status === 'Completed').length;
-    if (totalTasks > 0) {
-      employee.metrics.taskCompletionRate = Math.round((completedTasks / totalTasks) * 100);
-    }
+    // Automatically update tasksGiven
+    if (!employee.kpiData) employee.kpiData = {};
+    employee.kpiData.tasksGiven = employee.tasks.length;
+    employee.kpiData.tasksCompleted = employee.tasks.filter(t => t.status === 'Completed').length;
 
     await employee.save();
 
@@ -70,7 +90,8 @@ export const addTask = async (req, res) => {
       success: true,
       message: 'Task added successfully',
       tasks: employee.tasks,
-      metrics: employee.metrics
+      metrics: employee.metrics,
+      kpiData: employee.kpiData
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -95,12 +116,10 @@ export const updateTaskStatus = async (req, res) => {
     if (status) task.status = status;
     if (efficiencyRating !== undefined) task.efficiencyRating = Number(efficiencyRating);
 
-    // Re-evaluate task completion rate
-    const totalTasks = employee.tasks.length;
-    const completedTasks = employee.tasks.filter(t => t.status === 'Completed').length;
-    if (totalTasks > 0) {
-      employee.metrics.taskCompletionRate = Math.round((completedTasks / totalTasks) * 100);
-    }
+    // Update tasks completed count
+    if (!employee.kpiData) employee.kpiData = {};
+    employee.kpiData.tasksGiven = employee.tasks.length;
+    employee.kpiData.tasksCompleted = employee.tasks.filter(t => t.status === 'Completed').length;
 
     await employee.save();
 
@@ -108,7 +127,8 @@ export const updateTaskStatus = async (req, res) => {
       success: true,
       message: 'Task updated',
       task,
-      metrics: employee.metrics
+      metrics: employee.metrics,
+      kpiData: employee.kpiData
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -126,10 +146,9 @@ export const deleteTask = async (req, res) => {
 
     employee.tasks.pull(taskId);
 
-    // Re-evaluate task completion rate
-    const totalTasks = employee.tasks.length;
-    const completedTasks = employee.tasks.filter(t => t.status === 'Completed').length;
-    employee.metrics.taskCompletionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 100;
+    if (!employee.kpiData) employee.kpiData = {};
+    employee.kpiData.tasksGiven = employee.tasks.length;
+    employee.kpiData.tasksCompleted = employee.tasks.filter(t => t.status === 'Completed').length;
 
     await employee.save();
 
@@ -137,7 +156,8 @@ export const deleteTask = async (req, res) => {
       success: true,
       message: 'Task removed',
       tasks: employee.tasks,
-      metrics: employee.metrics
+      metrics: employee.metrics,
+      kpiData: employee.kpiData
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

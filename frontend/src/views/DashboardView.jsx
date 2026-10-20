@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -23,10 +23,11 @@ import {
   CheckCircle,
   Building2,
   ChevronRight,
-  Sparkles,
-  ArrowUpRight
+  ArrowUpRight,
+  Sparkles
 } from 'lucide-react';
 import KpiCard from '../components/KpiCard';
+import Avatar from '../components/Avatar';
 
 // Register ChartJS modules
 ChartJS.register(
@@ -67,38 +68,36 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
       {
         label: 'Attendance Rate (%)',
         data: trends.map(t => t.attendance),
-        borderColor: '#06b6d4', // Cyan
-        backgroundColor: 'rgba(6, 182, 212, 0.15)',
-        tension: 0.4,
+        borderColor: '#2563eb', // Blue
+        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+        tension: 0.35,
         fill: true,
-        pointBackgroundColor: '#06b6d4',
-        pointBorderColor: '#080c14',
+        pointBackgroundColor: '#2563eb',
+        pointBorderColor: '#ffffff',
         pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
+        pointRadius: 4
       },
       {
         label: 'Productivity Score (%)',
         data: trends.map(t => t.productivity),
-        borderColor: '#a855f7', // Violet
-        backgroundColor: 'rgba(168, 85, 247, 0.12)',
-        tension: 0.4,
+        borderColor: '#ea580c', // Orange
+        backgroundColor: 'rgba(234, 88, 12, 0.06)',
+        tension: 0.35,
         fill: true,
-        pointBackgroundColor: '#a855f7',
-        pointBorderColor: '#080c14',
+        pointBackgroundColor: '#ea580c',
+        pointBorderColor: '#ffffff',
         pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
+        pointRadius: 4
       },
       {
-        label: 'Overall KPI Score',
+        label: 'Overall KPI Score (%)',
         data: trends.map(t => t.overallScore),
-        borderColor: '#10b981', // Emerald
+        borderColor: '#16a34a', // Green
         backgroundColor: 'transparent',
         borderDash: [5, 5],
-        tension: 0.4,
-        pointBackgroundColor: '#10b981',
-        pointBorderColor: '#080c14',
+        tension: 0.35,
+        pointBackgroundColor: '#16a34a',
+        pointBorderColor: '#ffffff',
         pointBorderWidth: 2,
         pointRadius: 3
       }
@@ -112,30 +111,29 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
       legend: {
         position: 'top',
         labels: {
-          color: '#94a3b8',
-          font: { size: 11, family: 'Inter' },
+          color: '#475569',
+          font: { size: 11, family: 'Inter', weight: '600' },
           boxWidth: 12,
           usePointStyle: true
         }
       },
       tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-        titleColor: '#f8fafc',
-        bodyColor: '#cbd5e1',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1,
-        padding: 10
+        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+        titleColor: '#ffffff',
+        bodyColor: '#e2e8f0',
+        padding: 10,
+        cornerRadius: 8
       }
     },
     scales: {
       x: {
-        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+        grid: { color: 'rgba(226, 232, 240, 0.8)' },
         ticks: { color: '#64748b', font: { size: 11 } }
       },
       y: {
         min: 60,
         max: 100,
-        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+        grid: { color: 'rgba(226, 232, 240, 0.8)' },
         ticks: { color: '#64748b', font: { size: 11 } }
       }
     }
@@ -148,19 +146,19 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
       {
         label: 'Actual Avg Score',
         data: depts.map(d => d.avgScore),
-        backgroundColor: 'rgba(6, 182, 212, 0.25)',
-        borderColor: '#06b6d4',
+        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+        borderColor: '#2563eb',
         borderWidth: 2,
-        pointBackgroundColor: '#06b6d4'
+        pointBackgroundColor: '#2563eb'
       },
       {
         label: 'Target KPI Score',
         data: depts.map(d => d.targetScore),
-        backgroundColor: 'rgba(168, 85, 247, 0.15)',
-        borderColor: '#a855f7',
+        backgroundColor: 'rgba(234, 88, 12, 0.15)',
+        borderColor: '#ea580c',
         borderWidth: 1.5,
         borderDash: [4, 4],
-        pointBackgroundColor: '#a855f7'
+        pointBackgroundColor: '#ea580c'
       }
     ]
   };
@@ -171,14 +169,14 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
     plugins: {
       legend: {
         position: 'top',
-        labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 10 }
+        labels: { color: '#475569', font: { size: 11 }, boxWidth: 10 }
       }
     },
     scales: {
       r: {
-        angleLines: { color: 'rgba(255, 255, 255, 0.08)' },
-        grid: { color: 'rgba(255, 255, 255, 0.08)' },
-        pointLabels: { color: '#cbd5e1', font: { size: 11 } },
+        angleLines: { color: 'rgba(226, 232, 240, 0.9)' },
+        grid: { color: 'rgba(226, 232, 240, 0.9)' },
+        pointLabels: { color: '#334155', font: { size: 11, weight: '600' } },
         ticks: { backdropColor: 'transparent', color: '#64748b', stepSize: 10, min: 70, max: 100 }
       }
     }
@@ -190,21 +188,21 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
     datasets: [
       {
         data: [
-          categoryDist['Exceptional'] || 16,
-          categoryDist['Strong Performer'] || 23,
-          categoryDist['Meets Expectations'] || 3,
-          categoryDist['Needs Improvement'] || 2,
-          categoryDist['Critical Attention'] || 1
+          categoryDist['Exceptional'] || 5,
+          categoryDist['Strong Performer'] || 7,
+          categoryDist['Meets Expectations'] || 2,
+          categoryDist['Needs Improvement'] || 1,
+          categoryDist['Critical Attention'] || 0
         ],
         backgroundColor: [
-          '#10b981', // Emerald
-          '#06b6d4', // Cyan
-          '#3b82f6', // Blue
-          '#f59e0b', // Amber
-          '#ef4444'  // Rose
+          '#16a34a', // Green
+          '#2563eb', // Blue
+          '#6366f1', // Indigo
+          '#ea580c', // Orange
+          '#dc2626'  // Red
         ],
-        borderColor: '#080c14',
-        borderWidth: 3,
+        borderColor: '#ffffff',
+        borderWidth: 2,
         hoverOffset: 6
       }
     ]
@@ -216,45 +214,39 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 8, padding: 12 }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(15, 23, 42, 0.95)',
-        titleColor: '#f8fafc',
-        bodyColor: '#cbd5e1',
-        borderColor: 'rgba(255, 255, 255, 0.1)',
-        borderWidth: 1
+        labels: { color: '#475569', font: { size: 10, weight: '500' }, boxWidth: 8, padding: 12 }
       }
     },
     cutout: '70%'
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
+      
       {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel rounded-2xl p-6 border border-slate-800/80 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/40">
+      <div className="glass-panel rounded-2xl p-6 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-cyan-950 text-cyan-400 border border-cyan-800/50">
-              Module 3: HR Analytics Dashboard
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+              Workforce Cockpit
             </span>
-            <span className="text-xs text-slate-400">Quarterly Workforce Evaluation</span>
+            <span className="text-xs text-slate-500">Live Executive Metrics</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-1.5">
-            Enterprise Performance Cockpit
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-1.5">
+            Executive Performance & Operations Cockpit
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-            Live multi-department metrics, KPI tracking distributions, predictive insights, and automated leadership ratings.
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+            Real-time multi-department productivity indexes, attendance compliance trajectory, KPI distributions, and leadership rankings.
           </p>
         </div>
 
         <div className="flex items-center space-x-2.5">
           <button
             onClick={() => onNavigateTab('reports')}
-            className="flex items-center space-x-2 px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-medium text-xs shadow-lg shadow-cyan-900/30 transition-all cursor-pointer"
+            className="btn-large bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Export Executive PDF</span>
+            <Sparkles className="w-4 h-4" />
+            <span>Generate Executive Report</span>
           </button>
         </div>
       </div>
@@ -265,9 +257,9 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
           title="Avg Performance Score"
           value={stats.avgPerformanceScore}
           unit="/ 100"
-          change={4.2}
+          change={3.8}
           isPositive={true}
-          subtitle="Org Benchmark 85"
+          subtitle="Target Benchmark 85"
           icon={Award}
           variant="cyan"
           onClick={() => onNavigateTab('performance')}
@@ -275,25 +267,25 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
         <KpiCard
           title="Attendance Rate"
           value={`${stats.avgAttendanceRate}%`}
-          change={1.8}
+          change={1.4}
           isPositive={true}
-          subtitle="Target >= 90%"
+          subtitle="Compliance Target >= 90%"
           icon={Clock}
           variant="emerald"
         />
         <KpiCard
           title="Task Completion Rate"
           value={`${stats.avgTaskCompletion}%`}
-          change={-0.6}
-          isPositive={false}
-          subtitle="Sprint Throughput"
+          change={2.1}
+          isPositive={true}
+          subtitle="Sprint Velocity"
           icon={CheckCircle}
           variant="violet"
         />
         <KpiCard
-          title="Active Headcount"
+          title="Total Workforce"
           value={stats.totalHeadcount}
-          subtitle={`${stats.topPerformersCount} Pinnacle | ${stats.atRiskCount} At Risk`}
+          subtitle={`${stats.topPerformersCount} Exceptional | ${stats.atRiskCount} At Risk`}
           icon={Users}
           variant="amber"
           onClick={() => onNavigateTab('employees')}
@@ -303,86 +295,91 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
       {/* Main Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Attendance & Productivity Trends (2 cols) */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-slate-800/80 bg-slate-950/60 flex flex-col">
+        <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-semibold text-white">
+              <h2 className="text-base font-semibold text-slate-900">
                 Monthly Performance & Attendance Trajectory
               </h2>
-              <p className="text-xs text-slate-400">
-                6-month historical progression across all business units
+              <p className="text-xs text-slate-500">
+                6-month historical tracking of attendance compliance vs productivity output
               </p>
             </div>
-            <div className="flex items-center space-x-2 text-xs">
-              <span className="w-2 h-2 rounded-full bg-cyan-400" />
-              <span className="text-slate-300">Live Telemetry</span>
-            </div>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600">
+              Trailing 6 Months
+            </span>
           </div>
-          <div className="w-full h-72">
+
+          <div className="h-64 w-full">
             <Line data={trendChartData} options={lineOptions} />
           </div>
         </div>
 
-        {/* Category Distribution (1 col) */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-800/80 bg-slate-950/60 flex flex-col">
-          <div className="flex items-center justify-between mb-2">
-            <div>
-              <h2 className="text-base font-semibold text-white">
-                Performance Rating Spread
+        {/* Category Distribution Doughnut (1 col) */}
+        <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base font-semibold text-slate-900">
+                Performance Tiers
               </h2>
-              <p className="text-xs text-slate-400">
-                Workforce tier distribution
-              </p>
+              <span className="text-xs text-slate-400">Headcount</span>
             </div>
-          </div>
-          <div className="w-full h-64 relative flex items-center justify-center">
-            <Doughnut data={doughnutData} options={doughnutOptions} />
-            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none pb-6">
-              <span className="text-2xl font-bold font-mono text-white">
-                {stats.totalHeadcount}
-              </span>
-              <span className="text-[10px] text-slate-400 uppercase tracking-wider">
-                Employees
-              </span>
+            <p className="text-xs text-slate-500 mb-3">
+              Distribution of employees across evaluation bands
+            </p>
+
+            <div className="h-56 relative flex items-center justify-center">
+              <Doughnut data={doughnutData} options={doughnutOptions} />
+              <div className="absolute flex flex-col items-center justify-center pointer-events-none">
+                <span className="text-2xl font-bold font-mono text-slate-900">
+                  {stats.totalHeadcount}
+                </span>
+                <span className="text-[10px] text-slate-400 uppercase font-semibold">
+                  Personnel
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Secondary Row: Department Radar & Top Performers Leaderboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Department Radar / Comparison */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-800/80 bg-slate-950/60">
-          <div className="flex items-center justify-between mb-3">
+      {/* Secondary Row: Department Comparison & Top Performers */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Department Comparison (2 cols) */}
+        <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base font-semibold text-white">
-                Department Performance vs Target
+              <h2 className="text-base font-semibold text-slate-900 flex items-center space-x-2">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <span>Departmental KPI Benchmarking</span>
               </h2>
-              <p className="text-xs text-slate-400">
-                Multi-axis alignment against organizational quarterly goals
+              <p className="text-xs text-slate-500">
+                Evaluating departmental score variance against target baseline
               </p>
             </div>
-            <div className="flex bg-slate-900 rounded-lg p-1 border border-slate-800">
+
+            <div className="flex rounded-lg bg-slate-100 p-0.5 border border-slate-200">
               <button
                 onClick={() => setChartMode('radar')}
-                className={`px-2 py-0.5 text-xs rounded-md transition-colors cursor-pointer ${
-                  chartMode === 'radar' ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-slate-400'
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                  chartMode === 'radar' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Radar
+                Radar View
               </button>
               <button
                 onClick={() => setChartMode('bar')}
-                className={`px-2 py-0.5 text-xs rounded-md transition-colors cursor-pointer ${
-                  chartMode === 'bar' ? 'bg-cyan-500/20 text-cyan-300 font-semibold' : 'text-slate-400'
+                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                  chartMode === 'bar' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
                 }`}
               >
-                Bar
+                Bar Chart
               </button>
             </div>
           </div>
 
-          <div className="w-full h-72">
+          <div className="h-64 w-full">
             {chartMode === 'radar' ? (
               <Radar data={radarData} options={radarOptions} />
             ) : (
@@ -391,15 +388,15 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
                   labels: depts.map(d => d.name),
                   datasets: [
                     {
-                      label: 'Avg Score',
+                      label: 'Actual Score',
                       data: depts.map(d => d.avgScore),
-                      backgroundColor: '#06b6d4',
+                      backgroundColor: '#2563eb',
                       borderRadius: 6
                     },
                     {
                       label: 'Target Score',
                       data: depts.map(d => d.targetScore),
-                      backgroundColor: '#a855f7',
+                      backgroundColor: '#cbd5e1',
                       borderRadius: 6
                     }
                   ]
@@ -410,22 +407,22 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
           </div>
         </div>
 
-        {/* Top Performers Leaderboard */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-800/80 bg-slate-950/60 flex flex-col justify-between">
+        {/* Top Performers Leaderboard (1 col) */}
+        <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-base font-semibold text-white flex items-center space-x-2">
-                  <Award className="w-4 h-4 text-amber-400" />
+                <h2 className="text-base font-semibold text-slate-900 flex items-center space-x-2">
+                  <Award className="w-4 h-4 text-orange-500" />
                   <span>Top Performers Leaderboard</span>
                 </h2>
-                <p className="text-xs text-slate-400">
-                  Highest aggregate KPI composite scores
+                <p className="text-xs text-slate-500">
+                  Highest aggregate KPI scores
                 </p>
               </div>
               <button
                 onClick={() => onNavigateTab('employees')}
-                className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center space-x-1 cursor-pointer"
+                className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center space-x-1 cursor-pointer"
               >
                 <span>View All</span>
                 <ArrowUpRight className="w-3.5 h-3.5" />
@@ -433,36 +430,34 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
             </div>
 
             <div className="space-y-2.5">
-              {topPerformers.map((emp, index) => (
+              {topPerformers.slice(0, 5).map((emp, index) => (
                 <div
                   key={emp.employeeId}
                   onClick={() => onSelectEmployee(emp.employeeId)}
-                  className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 hover:border-cyan-500/30 transition-all cursor-pointer group"
+                  className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-blue-50/50 hover:border-blue-300 transition-all cursor-pointer group"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="w-6 text-center font-mono font-bold text-xs text-slate-400 group-hover:text-cyan-400">
+                  <div className="flex items-center space-x-3 min-w-0">
+                    <div className="w-5 text-center font-mono font-bold text-xs text-slate-400 group-hover:text-blue-600">
                       #{index + 1}
                     </div>
-                    <img
-                      src={emp.avatar}
-                      alt={emp.name}
-                      className="w-9 h-9 rounded-full object-cover border border-cyan-500/30"
+                    <Avatar
+                      name={emp.name}
+                      initials={emp.initials}
+                      bg={emp.avatarBg}
+                      size="sm"
                     />
-                    <div>
-                      <div className="text-xs font-semibold text-white group-hover:text-cyan-300 flex items-center space-x-1.5">
-                        <span>{emp.name}</span>
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
-                          {emp.department}
-                        </span>
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 group-hover:text-blue-600 truncate">
+                        {emp.name}
                       </div>
-                      <div className="text-[11px] text-slate-400">
-                        {emp.role}
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {emp.role} • {emp.department}
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <div className="text-sm font-bold font-mono text-emerald-400">
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-xs font-bold font-mono text-emerald-600">
                       {emp.metrics?.overallScore}%
                     </div>
                     <div className="text-[10px] text-slate-400">
@@ -473,12 +468,10 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
               ))}
             </div>
           </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs text-slate-400">
-            <span>Formula: 20% Attendance + 25% Tasks + 25% Productivity + 15% Contribution + 15% Efficiency</span>
-          </div>
         </div>
+
       </div>
+
     </div>
   );
 }

@@ -1,387 +1,549 @@
 import React, { useState } from 'react';
 import {
   Gauge,
-  Sliders,
   CheckSquare,
   Clock,
-  Zap,
-  Briefcase,
-  TrendingUp,
+  Award,
   Search,
   Save,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  MessageSquare,
+  Send,
+  IndianRupee,
+  Layers,
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
+import Avatar from '../components/Avatar';
+import { api } from '../api/api';
 
-export default function PerformanceView({ employees = [], onUpdateEmployeeMetrics, onSelectEmployee }) {
+export default function PerformanceView({
+  employees = [],
+  onUpdateEmployeeMetrics,
+  onSelectEmployee,
+  showToast
+}) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDept, setSelectedDept] = useState('All');
-  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [selectedEmployee, setSelectedEmployee] = useState(employees[0] || null);
 
-  // Quick Metric Tuner state
-  const [tunerAttendance, setTunerAttendance] = useState(90);
-  const [tunerTasks, setTunerTasks] = useState(85);
-  const [tunerProd, setTunerProd] = useState(88);
-  const [tunerContrib, setTunerContrib] = useState(85);
-  const [tunerEfficiency, setTunerEfficiency] = useState(86);
+  // KPI Inputs
+  const [tasksGiven, setTasksGiven] = useState(selectedEmployee?.kpiData?.tasksGiven || 20);
+  const [tasksCompleted, setTasksCompleted] = useState(selectedEmployee?.kpiData?.tasksCompleted || 18);
+  const [reviewScore, setReviewScore] = useState(selectedEmployee?.kpiData?.reviewScore !== undefined ? selectedEmployee.kpiData.reviewScore : 8.5);
+  const [attendanceRate, setAttendanceRate] = useState(selectedEmployee?.kpiData?.attendanceRate || 92);
+  const [salary, setSalary] = useState(selectedEmployee?.salary || 850000);
+  const [status, setStatus] = useState(selectedEmployee?.status || 'Active');
 
-  // Simulated score
-  const simulatedScore = Math.round(
-    (tunerAttendance * 0.20) +
-    (tunerTasks * 0.25) +
-    (tunerProd * 0.25) +
-    (tunerContrib * 0.15) +
-    (tunerEfficiency * 0.15)
+  // Feedback Modal state
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [feedbackCategory, setFeedbackCategory] = useState('Appraisal');
+  const [sendingFeedback, setSendingFeedback] = useState(false);
+
+  // Load employee into simulator
+  const handleSelectEmployeeForTuning = (emp) => {
+    setSelectedEmployee(emp);
+    const kpi = emp.kpiData || {};
+    setTasksGiven(kpi.tasksGiven || 20);
+    setTasksCompleted(kpi.tasksCompleted || 18);
+    setReviewScore(kpi.reviewScore !== undefined ? kpi.reviewScore : 8.5);
+    setAttendanceRate(kpi.attendanceRate || emp.metrics?.attendanceRate || 92);
+    setSalary(emp.salary || 850000);
+    setStatus(emp.status || 'Active');
+  };
+
+  // Auto-calculated rates
+  const safeGiven = Math.max(1, Number(tasksGiven) || 1);
+  const safeCompleted = Math.max(0, Number(tasksCompleted) || 0);
+  const safeReview = Math.min(10, Math.max(0, Number(reviewScore) || 0));
+  const safeAttendance = Math.min(100, Math.max(0, Number(attendanceRate) || 0));
+
+  const taskCompletionRate = Math.min(100, Math.round((safeCompleted / safeGiven) * 100));
+  const reviewPercent = Math.min(100, Math.round(safeReview * 10));
+
+  // Overall Auto Formula: Attendance (20%) + Task Completion (40%) + HR Review (40%)
+  const autoCalculatedOverall = Math.round(
+    (safeAttendance * 0.20) +
+    (taskCompletionRate * 0.40) +
+    (reviewPercent * 0.40)
   );
 
-  const getSimulatedTier = (score) => {
-    if (score >= 92) return { name: 'Exceptional', color: 'text-emerald-400 bg-emerald-950/80 border-emerald-800' };
-    if (score >= 82) return { name: 'Strong Performer', color: 'text-cyan-400 bg-cyan-950/80 border-cyan-800' };
-    if (score >= 70) return { name: 'Meets Expectations', color: 'text-blue-400 bg-blue-950/80 border-blue-800' };
-    if (score >= 60) return { name: 'Needs Improvement', color: 'text-amber-400 bg-amber-950/80 border-amber-800' };
-    return { name: 'Critical Attention', color: 'text-rose-400 bg-rose-950/80 border-rose-800' };
+  const getTier = (score) => {
+    if (score >= 92) return { label: 'Exceptional', color: 'bg-emerald-100 text-emerald-700 border-emerald-200' };
+    if (score >= 82) return { label: 'Strong Performer', color: 'bg-blue-100 text-blue-700 border-blue-200' };
+    if (score >= 70) return { label: 'Meets Expectations', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' };
+    if (score >= 60) return { label: 'Needs Improvement', color: 'bg-orange-100 text-orange-700 border-orange-200' };
+    return { label: 'Critical Attention', color: 'bg-red-100 text-red-700 border-red-200' };
   };
 
-  const handleApplyToSelected = async () => {
-    if (!editingEmployee) return;
+  const currentTier = getTier(autoCalculatedOverall);
 
-    await onUpdateEmployeeMetrics(editingEmployee._id || editingEmployee.employeeId, {
-      attendanceRate: tunerAttendance,
-      taskCompletionRate: tunerTasks,
-      productivityScore: tunerProd,
-      projectContribution: tunerContrib,
-      workEfficiency: tunerEfficiency
+  const handleSaveKpi = async () => {
+    if (!selectedEmployee) return;
+
+    await onUpdateEmployeeMetrics(selectedEmployee._id || selectedEmployee.employeeId, {
+      tasksGiven: safeGiven,
+      tasksCompleted: safeCompleted,
+      reviewScore: safeReview,
+      attendanceRate: safeAttendance,
+      salary: Number(salary),
+      status: status
     });
-
-    if (simulatedScore >= 92) {
-      confetti({
-        particleCount: 60,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-    }
-
-    setEditingEmployee(null);
   };
 
-  const loadEmployeeIntoTuner = (emp) => {
-    setEditingEmployee(emp);
-    setTunerAttendance(emp.metrics.attendanceRate);
-    setTunerTasks(emp.metrics.taskCompletionRate);
-    setTunerProd(emp.metrics.productivityScore);
-    setTunerContrib(emp.metrics.projectContribution);
-    setTunerEfficiency(emp.metrics.workEfficiency);
+  const handleSendFeedback = async (e) => {
+    e.preventDefault();
+    if (!feedbackMessage.trim() || !selectedEmployee) return;
+
+    try {
+      setSendingFeedback(true);
+      const res = await api.sendFeedback({
+        employeeId: selectedEmployee.employeeId,
+        message: feedbackMessage.trim(),
+        category: feedbackCategory,
+        from: 'Priya Sharma (HR Director)'
+      });
+
+      if (res.success) {
+        if (showToast) {
+          showToast(`Appraisal feedback delivered to ${selectedEmployee.name}`, 'success');
+        }
+        setFeedbackMessage('');
+        setIsFeedbackModalOpen(false);
+      }
+    } catch (err) {
+      if (showToast) showToast('Failed to deliver feedback: ' + err.message, 'error');
+    } finally {
+      setSendingFeedback(false);
+    }
   };
 
   const filteredEmployees = employees.filter(emp => {
     const matchesSearch =
       emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      emp.role.toLowerCase().includes(searchTerm.toLowerCase());
+      emp.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.employeeId.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDept = selectedDept === 'All' || emp.department === selectedDept;
     return matchesSearch && matchesDept;
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
+      
       {/* Top Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel rounded-2xl p-6 border border-slate-800/80 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950/40">
+      <div className="glass-panel rounded-2xl p-6 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/50">
-              Module 2: Performance Tracking System
-            </span>
-            <span className="text-xs text-slate-400">KPI Evaluation Engine</span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mt-1.5">
-            KPI Tracking & Evaluation Logic
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            Real-Time KPI Simulator & Performance Calibrator
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-2xl">
-            Live calibration of Attendance %, Task Completion, Productivity, Contribution, and Work Efficiency scores.
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
+            Input task metrics and review scores (0.0 to 10.0 scale with 0.1 decimal precision) to auto-generate employee performance percentages and dispatch appraisal notes.
           </p>
         </div>
+
+        <div className="flex items-center space-x-2">
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-50 text-blue-700 border border-blue-200">
+            Formula: 40% Tasks + 40% Review + 20% Attendance
+          </span>
+        </div>
       </div>
 
-      {/* KPI Formula & Interactive Simulator Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Formula Explainer (1 col) */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-800/80 bg-slate-950/60 flex flex-col justify-between">
-          <div>
-            <h2 className="text-base font-semibold text-white flex items-center space-x-2">
-              <Gauge className="w-4 h-4 text-cyan-400" />
-              <span>Weighted Scoring Logic</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Standardized weighted KPI composite algorithm:
-            </p>
+      {/* Main Row: Employee Selector on Left, Real-Time Calibrator on Right */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* LEFT COLUMN: Employee Roster (4 cols) */}
+        <div className="lg:col-span-4 glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col h-[680px]">
+          <div className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">
+            Select Employee ({filteredEmployees.length})
+          </div>
 
-            <div className="space-y-2 mt-4">
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-xs text-slate-300">Attendance Percentage</span>
-                <span className="text-xs font-mono font-bold text-cyan-400">20%</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-xs text-slate-300">Task Completion Rate</span>
-                <span className="text-xs font-mono font-bold text-indigo-400">25%</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-xs text-slate-300">Productivity Score</span>
-                <span className="text-xs font-mono font-bold text-purple-400">25%</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-xs text-slate-300">Project Contribution</span>
-                <span className="text-xs font-mono font-bold text-emerald-400">15%</span>
-              </div>
-              <div className="flex justify-between items-center p-2 rounded-lg bg-slate-900/60 border border-slate-800">
-                <span className="text-xs text-slate-300">Work Efficiency</span>
-                <span className="text-xs font-mono font-bold text-amber-400">15%</span>
-              </div>
+          <div className="space-y-2 mb-3">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                placeholder="Search employee..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-8 pr-3 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
+              />
             </div>
+
+            <select
+              value={selectedDept}
+              onChange={(e) => setSelectedDept(e.target.value)}
+              className="w-full px-2.5 py-1.5 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white text-slate-700"
+            >
+              <option value="All">All Departments</option>
+              <option value="Engineering">Engineering</option>
+              <option value="Product">Product</option>
+              <option value="Marketing">Marketing</option>
+              <option value="Sales">Sales</option>
+              <option value="Human Resources">Human Resources</option>
+            </select>
           </div>
 
-          <div className="mt-4 p-3 rounded-xl bg-cyan-950/20 border border-cyan-900/40 text-[11px] text-cyan-300 leading-relaxed">
-            Composite scores &gt;= 92 trigger Exceptional status; scores &lt; 70 flag immediate PIP guidance.
-          </div>
-        </div>
-
-        {/* Live KPI Calibration Tuner (2 cols) */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-slate-800/80 bg-slate-950/60 flex flex-col justify-between">
-          <div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-              <div>
-                <h2 className="text-base font-semibold text-white flex items-center space-x-2">
-                  <Sliders className="w-4 h-4 text-emerald-400" />
-                  <span>Real-time KPI Simulator & Tuner</span>
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {editingEmployee
-                    ? `Calibrating metrics for ${editingEmployee.name} (${editingEmployee.employeeId})`
-                    : 'Select any employee to calibrate or adjust sliders for testing'}
-                </p>
-              </div>
-
-              <div className="flex items-center space-x-2">
-                <select
-                  value={editingEmployee?._id || editingEmployee?.employeeId || ''}
-                  onChange={(e) => {
-                    const selected = employees.find(emp => emp._id === e.target.value || emp.employeeId === e.target.value);
-                    if (selected) loadEmployeeIntoTuner(selected);
-                    else setEditingEmployee(null);
-                  }}
-                  className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[220px]"
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {filteredEmployees.map(emp => {
+              const isSelected = selectedEmployee?.employeeId === emp.employeeId;
+              return (
+                <div
+                  key={emp.employeeId}
+                  onClick={() => handleSelectEmployeeForTuning(emp)}
+                  className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
+                    isSelected
+                      ? 'border-blue-500 bg-blue-50/70 shadow-sm'
+                      : 'border-slate-200 bg-white hover:bg-slate-50'
+                  }`}
                 >
-                  <option value="">-- Select Employee --</option>
-                  {employees.map(emp => (
-                    <option key={emp._id || emp.employeeId} value={emp._id || emp.employeeId}>
-                      {emp.name} ({emp.department})
-                    </option>
-                  ))}
-                </select>
-                {editingEmployee && (
-                  <button
-                    onClick={() => setEditingEmployee(null)}
-                    className="text-xs text-slate-400 hover:text-slate-200 underline cursor-pointer"
-                  >
-                    Clear
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Sliders Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Attendance Slider */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Attendance Rate</span>
-                  <span className="font-mono text-cyan-400 font-bold">{tunerAttendance}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="50"
-                  max="100"
-                  value={tunerAttendance}
-                  onChange={(e) => setTunerAttendance(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-                />
-              </div>
-
-              {/* Task Completion Slider */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Task Completion Rate</span>
-                  <span className="font-mono text-indigo-400 font-bold">{tunerTasks}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="50"
-                  max="100"
-                  value={tunerTasks}
-                  onChange={(e) => setTunerTasks(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-400"
-                />
-              </div>
-
-              {/* Productivity Slider */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Productivity Score</span>
-                  <span className="font-mono text-purple-400 font-bold">{tunerProd}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="50"
-                  max="100"
-                  value={tunerProd}
-                  onChange={(e) => setTunerProd(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-purple-400"
-                />
-              </div>
-
-              {/* Project Contribution Slider */}
-              <div className="space-y-1">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Project Contribution</span>
-                  <span className="font-mono text-emerald-400 font-bold">{tunerContrib}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="50"
-                  max="100"
-                  value={tunerContrib}
-                  onChange={(e) => setTunerContrib(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                />
-              </div>
-
-              {/* Work Efficiency Slider */}
-              <div className="space-y-1 md:col-span-2">
-                <div className="flex justify-between text-xs">
-                  <span className="text-slate-400">Work Efficiency Rating</span>
-                  <span className="font-mono text-amber-400 font-bold">{tunerEfficiency}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="50"
-                  max="100"
-                  value={tunerEfficiency}
-                  onChange={(e) => setTunerEfficiency(Number(e.target.value))}
-                  className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Outcome & Action Bar */}
-          <div className="mt-6 pt-4 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <div>
-                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-                  Simulated Composite
-                </span>
-                <span className="text-3xl font-bold font-mono text-white">
-                  {simulatedScore}%
-                </span>
-              </div>
-              <span
-                className={`px-3 py-1 text-xs font-semibold rounded-full border ${
-                  getSimulatedTier(simulatedScore).color
-                }`}
-              >
-                {getSimulatedTier(simulatedScore).name}
-              </span>
-            </div>
-
-            {editingEmployee ? (
-              <button
-                onClick={handleApplyToSelected}
-                className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-medium text-xs shadow-lg shadow-emerald-950/50 transition-all cursor-pointer"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Save to {editingEmployee.name}</span>
-              </button>
-            ) : (
-              <span className="text-xs text-slate-400 italic">
-                Select an employee from table below to tune their metrics directly.
-              </span>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Employee KPI Tracking Table */}
-      <div className="glass-panel rounded-2xl border border-slate-800/80 bg-slate-950/60 overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3">
-          <div className="relative w-full sm:w-72">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Search employee metrics..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 text-xs rounded-xl bg-slate-900 border border-slate-700 text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
-            />
-          </div>
-
-          <div className="text-xs text-slate-400">
-            Click <span className="text-cyan-400 font-semibold">"Tune"</span> to load any profile into the KPI Simulator.
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 bg-slate-900/60 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                <th className="py-3 px-4">Employee</th>
-                <th className="py-3 px-4">Attendance (20%)</th>
-                <th className="py-3 px-4">Tasks (25%)</th>
-                <th className="py-3 px-4">Productivity (25%)</th>
-                <th className="py-3 px-4">Contribution (15%)</th>
-                <th className="py-3 px-4">Efficiency (15%)</th>
-                <th className="py-3 px-4">Overall Score</th>
-                <th className="py-3 px-4 text-right">Quick Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
-              {filteredEmployees.slice(0, 15).map((emp) => (
-                <tr key={emp.employeeId} className="hover:bg-slate-900/40 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="flex items-center space-x-2.5">
-                      <img
-                        src={emp.avatar}
-                        alt={emp.name}
-                        className="w-7 h-7 rounded-full object-cover border border-slate-700"
-                      />
-                      <div>
-                        <div className="font-semibold text-white">{emp.name}</div>
-                        <div className="text-[10px] text-slate-400">{emp.role}</div>
+                  <div className="flex items-center space-x-2.5 min-w-0">
+                    <Avatar
+                      name={emp.name}
+                      initials={emp.initials}
+                      bg={emp.avatarBg}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <div className="text-xs font-bold text-slate-900 truncate">
+                        {emp.name}
+                      </div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {emp.role}
                       </div>
                     </div>
-                  </td>
-                  <td className="py-3 px-4 font-mono">{emp.metrics.attendanceRate}%</td>
-                  <td className="py-3 px-4 font-mono">{emp.metrics.taskCompletionRate}%</td>
-                  <td className="py-3 px-4 font-mono">{emp.metrics.productivityScore}%</td>
-                  <td className="py-3 px-4 font-mono">{emp.metrics.projectContribution}%</td>
-                  <td className="py-3 px-4 font-mono">{emp.metrics.workEfficiency}%</td>
-                  <td className="py-3 px-4">
-                    <span className="font-mono font-bold text-emerald-400">
-                      {emp.metrics.overallScore}%
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-right">
-                    <button
-                      onClick={() => loadEmployeeIntoTuner(emp)}
-                      className="px-2.5 py-1 text-xs rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-800/50 text-cyan-300 font-medium cursor-pointer transition-colors"
-                    >
-                      Tune KPIs
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </div>
+
+                  <div className="text-right flex-shrink-0">
+                    <div className="text-xs font-bold font-mono text-blue-600">
+                      {emp.metrics?.overallScore || 85}%
+                    </div>
+                    <div className="text-[10px] text-slate-400">
+                      {emp.status}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
+
+        {/* RIGHT COLUMN: Real-Time KPI Simulator & Controls (8 cols) */}
+        <div className="lg:col-span-8 glass-panel rounded-2xl p-6 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col justify-between">
+          {selectedEmployee ? (
+            <div className="space-y-6">
+              
+              {/* Employee Header & Protected Personal Info */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-slate-200 gap-4">
+                <div className="flex items-center space-x-3.5">
+                  <Avatar
+                    name={selectedEmployee.name}
+                    initials={selectedEmployee.initials}
+                    bg={selectedEmployee.avatarBg}
+                    size="lg"
+                  />
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <h2 className="text-lg font-bold text-slate-900">
+                        {selectedEmployee.name}
+                      </h2>
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                        {selectedEmployee.employeeId}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 mt-0.5">
+                      {selectedEmployee.role} • {selectedEmployee.department} • <span className="text-slate-400">Personal identity details protected from alteration</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setIsFeedbackModalOpen(true)}
+                    className="px-3.5 py-2 text-xs font-semibold rounded-xl border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-all flex items-center space-x-1.5 cursor-pointer shadow-sm"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Send Feedback Note</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* REAL-TIME AUTO CALCULATED SCORE CARD */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                    Auto-Generated Real-Time Performance Rating
+                  </div>
+                  <div className="flex items-baseline space-x-3 mt-1">
+                    <span className="text-4xl font-extrabold font-mono text-blue-700">
+                      {autoCalculatedOverall}%
+                    </span>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${currentTier.color}`}>
+                      {currentTier.label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 mt-1">
+                    Derived as: Task Rate ({taskCompletionRate}% × 40%) + Review ({reviewPercent}% × 40%) + Attendance ({safeAttendance}% × 20%)
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <button
+                    onClick={handleSaveKpi}
+                    className="btn-large bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer"
+                  >
+                    <Save className="w-4 h-4" />
+                    <span>Commit & Sync KPI</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* SIMULATOR INPUTS GRID */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                
+                {/* 1. Tasks Given */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-800">
+                      Tasks Given
+                    </label>
+                    <span className="text-sm font-bold font-mono text-blue-600">
+                      {safeGiven} tasks
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="50"
+                    step="1"
+                    value={tasksGiven}
+                    onChange={(e) => setTasksGiven(Number(e.target.value))}
+                    className="w-full accent-blue-600 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>1 task</span>
+                    <span>Direct number input:</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="100"
+                      value={tasksGiven}
+                      onChange={(e) => setTasksGiven(Number(e.target.value))}
+                      className="w-14 px-1 py-0.5 text-xs text-right border border-slate-300 rounded bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* 2. Tasks Completed */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-800">
+                      Tasks Completed
+                    </label>
+                    <span className="text-sm font-bold font-mono text-emerald-600">
+                      {safeCompleted} / {safeGiven} ({taskCompletionRate}%)
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max={safeGiven}
+                    step="1"
+                    value={tasksCompleted}
+                    onChange={(e) => setTasksCompleted(Number(e.target.value))}
+                    className="w-full accent-emerald-600 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>0 tasks</span>
+                    <span>Direct number input:</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max={safeGiven}
+                      value={tasksCompleted}
+                      onChange={(e) => setTasksCompleted(Number(e.target.value))}
+                      className="w-14 px-1 py-0.5 text-xs text-right border border-slate-300 rounded bg-white"
+                    />
+                  </div>
+                </div>
+
+                {/* 3. Review Score (0.0 to 10.0 scale with 0.1 decimal step) */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-800">
+                      HR Review Score (0.0 – 10.0)
+                    </label>
+                    <span className="text-sm font-bold font-mono text-orange-600">
+                      {safeReview.toFixed(1)} / 10.0 ({reviewPercent}%)
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.0"
+                    max="10.0"
+                    step="0.1"
+                    value={reviewScore}
+                    onChange={(e) => setReviewScore(parseFloat(e.target.value))}
+                    className="w-full accent-orange-600 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>0.0</span>
+                    <span>Decimal 0.1 input:</span>
+                    <input
+                      type="number"
+                      min="0.0"
+                      max="10.0"
+                      step="0.1"
+                      value={reviewScore}
+                      onChange={(e) => setReviewScore(parseFloat(e.target.value))}
+                      className="w-16 px-1 py-0.5 text-xs text-right border border-slate-300 rounded bg-white font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* 4. Attendance Rate */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-xs font-bold text-slate-800">
+                      Attendance Compliance Rate
+                    </label>
+                    <span className="text-sm font-bold font-mono text-blue-600">
+                      {safeAttendance}%
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="100"
+                    step="1"
+                    value={attendanceRate}
+                    onChange={(e) => setAttendanceRate(Number(e.target.value))}
+                    className="w-full accent-blue-600 cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                    <span>50%</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+
+                {/* 5. Annual CTC Salary (INR) - HR Authorized Only */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Annual Compensation (CTC in INR)
+                  </label>
+                  <div className="relative mt-2">
+                    <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-bold">₹</span>
+                    <input
+                      type="number"
+                      step="25000"
+                      value={salary}
+                      onChange={(e) => setSalary(e.target.value)}
+                      className="w-full pl-8 pr-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
+                    />
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Monthly Gross: ₹ {Math.round(salary / 12).toLocaleString('en-IN')}
+                  </div>
+                </div>
+
+                {/* 6. Employee Employment Status - HR Authorized Only */}
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70">
+                  <label className="block text-xs font-bold text-slate-800 mb-1">
+                    Employment Status
+                  </label>
+                  <select
+                    value={status}
+                    onChange={(e) => setStatus(e.target.value)}
+                    className="w-full mt-2 px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-1 focus:ring-blue-500 font-semibold"
+                  >
+                    <option value="Active">Active (On Duty)</option>
+                    <option value="On Leave">On Leave</option>
+                    <option value="Probation">Probation</option>
+                    <option value="Terminated">Terminated</option>
+                  </select>
+                  <div className="text-[10px] text-slate-500 mt-1">
+                    Status automatically syncs across organization charts and leave registry.
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          ) : (
+            <div className="p-12 text-center text-slate-400 text-xs">
+              Select an employee from the roster on the left to start KPI calibration.
+            </div>
+          )}
+        </div>
+
       </div>
+
+      {/* FEEDBACK MODAL */}
+      {isFeedbackModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+          <div className="relative w-full max-w-lg glass-panel rounded-2xl shadow-2xl border border-slate-200 bg-white p-6 animate-fade-in text-slate-900">
+            <h3 className="text-base font-bold text-slate-900 mb-1 flex items-center space-x-2">
+              <MessageSquare className="w-5 h-5 text-blue-600" />
+              <span>Send Appraisal Feedback to {selectedEmployee.name}</span>
+            </h3>
+            <p className="text-xs text-slate-500 mb-4">
+              This message will be delivered directly to the employee's self-service profile feedback inbox.
+            </p>
+
+            <form onSubmit={handleSendFeedback} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Feedback Category
+                </label>
+                <select
+                  value={feedbackCategory}
+                  onChange={(e) => setFeedbackCategory(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="Appraisal">Performance Appraisal</option>
+                  <option value="Recognition">Excellence Recognition</option>
+                  <option value="Improvement Plan">Targeted Improvement Area</option>
+                  <option value="General Notice">General Corporate Notice</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-700 mb-1">
+                  Feedback Message
+                </label>
+                <textarea
+                  rows="4"
+                  required
+                  placeholder="Provide constructive feedback, praise, or KPI development expectations..."
+                  value={feedbackMessage}
+                  onChange={(e) => setFeedbackMessage(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end space-x-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsFeedbackModalOpen(false)}
+                  className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={sendingFeedback}
+                  className="btn-large bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer disabled:opacity-60"
+                >
+                  <Send className="w-4 h-4" />
+                  <span>{sendingFeedback ? 'Delivering...' : 'Send to Employee'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

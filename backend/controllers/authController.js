@@ -1,10 +1,18 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import Employee from '../models/Employee.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'hr_hub_super_secret_jwt_key_2026';
 
 const generateToken = (id, role) => {
   return jwt.sign({ id, role }, JWT_SECRET, { expiresIn: '7d' });
+};
+
+const getInitials = (name) => {
+  if (!name) return 'HR';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  return name.substring(0, 2).toUpperCase();
 };
 
 export const login = async (req, res) => {
@@ -26,6 +34,9 @@ export const login = async (req, res) => {
 
     const token = generateToken(user._id, user.role);
 
+    // Look up associated employee profile if any
+    const emp = await Employee.findOne({ email: user.email.toLowerCase() });
+
     res.json({
       success: true,
       token,
@@ -35,7 +46,8 @@ export const login = async (req, res) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        avatar: user.avatar
+        initials: getInitials(user.name),
+        employeeId: emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null)
       }
     });
   } catch (error) {
@@ -50,7 +62,6 @@ export const demoLogin = async (req, res) => {
 
     let user = await User.findOne({ role: targetRole });
     if (!user) {
-      // Fallback to any user
       user = await User.findOne();
     }
 
@@ -59,6 +70,7 @@ export const demoLogin = async (req, res) => {
     }
 
     const token = generateToken(user._id, user.role);
+    const emp = await Employee.findOne({ email: user.email.toLowerCase() }) || (user.role === 'Employee' ? await Employee.findOne({ employeeId: 'EMP-1001' }) : null);
 
     res.json({
       success: true,
@@ -69,7 +81,8 @@ export const demoLogin = async (req, res) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        avatar: user.avatar
+        initials: getInitials(user.name),
+        employeeId: emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null)
       }
     });
   } catch (error) {
@@ -90,7 +103,7 @@ export const register = async (req, res) => {
       name,
       email: email.toLowerCase(),
       password,
-      role: role || 'HR Specialist',
+      role: role || 'HR Director',
       department: department || 'Human Resources'
     });
 
@@ -105,7 +118,8 @@ export const register = async (req, res) => {
         email: user.email,
         role: user.role,
         department: user.department,
-        avatar: user.avatar
+        initials: getInitials(user.name),
+        employeeId: null
       }
     });
   } catch (error) {
@@ -128,7 +142,20 @@ export const getMe = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    res.json({ success: true, user });
+    const emp = await Employee.findOne({ email: user.email.toLowerCase() });
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        initials: getInitials(user.name),
+        employeeId: emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null)
+      }
+    });
   } catch (error) {
     res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }

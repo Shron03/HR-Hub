@@ -2,17 +2,17 @@
 const BASE_URL = process.env.TEST_URL || 'http://localhost:5000';
 
 async function runTests() {
-  console.log(`\n🔍 Starting Backend Verification Tests against: ${BASE_URL}\n`);
+  console.log(`\n[START] Backend Verification Tests against: ${BASE_URL}\n`);
   let passed = 0;
   let failed = 0;
 
   const test = async (name, fn) => {
     try {
       await fn();
-      console.log(`  ✅ PASS: ${name}`);
+      console.log(`  [PASS] ${name}`);
       passed++;
     } catch (err) {
-      console.error(`  ❌ FAIL: ${name} ->`, err.message);
+      console.error(`  [FAIL] ${name} ->`, err.message);
       failed++;
     }
   };
@@ -57,22 +57,23 @@ async function runTests() {
     if (!data.recommendations) throw new Error('Missing smart recommendations');
   });
 
-  // Test 5: Metrics Recalculation Engine
-  await test('Update Employee Metrics & KPI Recalculation', async () => {
+  // Test 5: Metrics Recalculation Engine with Tasks & Decimal Review Score
+  await test('Update Employee Metrics & Real-Time KPI Recalculation', async () => {
     const res = await fetch(`${BASE_URL}/api/performance/EMP-1001/metrics`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        attendanceRate: 99,
-        productivityScore: 98,
-        taskCompletionRate: 97,
-        workEfficiency: 96,
-        projectContribution: 95
+        tasksGiven: 20,
+        tasksCompleted: 19,
+        reviewScore: 9.4,
+        attendanceRate: 98,
+        salary: 1350000,
+        status: 'Active'
       })
     });
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
-    if (!data.success || data.metrics.overallScore < 95) {
+    if (!data.success || data.metrics.overallScore < 90) {
       throw new Error(`Recalculated score mismatch: ${data.metrics?.overallScore}`);
     }
   });
@@ -88,7 +89,7 @@ async function runTests() {
   });
 
   // Test 7: Insights Engine
-  await test('HR Insights & Recommendations (/api/insights)', async () => {
+  await test('Workforce Insights & Diagnostics (/api/insights)', async () => {
     const res = await fetch(`${BASE_URL}/api/insights`);
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
@@ -104,6 +105,60 @@ async function runTests() {
     const data = await res.json();
     if (!data.success || !data.reportMetadata || !data.departmentRankings) {
       throw new Error('Report data incomplete');
+    }
+  });
+
+  // Test 9: Leaves Management & Auto Status Update
+  await test('Leave Application & Approval Lifecycle', async () => {
+    // Submit leave
+    const applyRes = await fetch(`${BASE_URL}/api/leaves`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employeeId: 'EMP-1001',
+        type: 'Privilege Leave',
+        reason: 'Annual family leave',
+        startDate: '2026-11-01',
+        endDate: '2026-11-05',
+        days: 5
+      })
+    });
+    const applyData = await applyRes.json();
+    if (!applyData.success) throw new Error('Leave submission failed');
+
+    const leaveId = applyData.leaveRequest._id;
+
+    // Approve leave
+    const approveRes = await fetch(`${BASE_URL}/api/leaves/${leaveId}/status`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'Approved', decisionNote: 'Approved by HR Director' })
+    });
+    const approveData = await approveRes.json();
+    if (!approveData.success || approveData.employeeStatus !== 'On Leave') {
+      throw new Error('Failed to auto-update employee status to On Leave');
+    }
+  });
+
+  // Test 10: Feedback Dispatch
+  await test('Feedback Message Dispatch & Retrieval', async () => {
+    const sendRes = await fetch(`${BASE_URL}/api/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        employeeId: 'EMP-1001',
+        message: 'Outstanding sprint delivery and architectural leadership.',
+        category: 'Recognition',
+        from: 'Priya Sharma (HR Director)'
+      })
+    });
+    const sendData = await sendRes.json();
+    if (!sendData.success) throw new Error('Feedback dispatch failed');
+
+    const getRes = await fetch(`${BASE_URL}/api/feedback/EMP-1001`);
+    const getData = await getRes.json();
+    if (!getData.success || getData.feedbacks.length === 0) {
+      throw new Error('Feedback retrieval failed');
     }
   });
 

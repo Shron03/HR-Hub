@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Employee from '../models/Employee.js';
+import { seedDatabase, clearEmployeesOnly } from '../seed.js';
 
 const findEmployee = async (id) => {
   if (mongoose.Types.ObjectId.isValid(id)) {
@@ -7,6 +8,32 @@ const findEmployee = async (id) => {
     if (emp) return emp;
   }
   return await Employee.findOne({ employeeId: id });
+};
+
+export const seedDemoEmployees = async (req, res) => {
+  try {
+    const result = await seedDatabase();
+    res.json({
+      success: true,
+      message: 'Demo dataset of 15 employees loaded successfully',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const clearAllEmployeesData = async (req, res) => {
+  try {
+    const result = await clearEmployeesOnly();
+    res.json({
+      success: true,
+      message: 'All employee records removed. System is in empty state.',
+      ...result
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 export const getEmployees = async (req, res) => {
@@ -77,7 +104,6 @@ export const getEmployeeById = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    // Dynamic smart recommendations for this specific employee
     const recommendations = [];
     const { metrics } = employee;
 
@@ -85,7 +111,7 @@ export const getEmployeeById = async (req, res) => {
       recommendations.push({
         type: 'warning',
         title: 'Attendance Risk Detected',
-        text: `Attendance is at ${metrics.attendanceRate}%. Schedule a 1-on-1 check-in to assess work-life balance or health factors.`
+        text: `Attendance is at ${metrics.attendanceRate}%. Schedule a 1-on-1 check-in to assess work-life balance.`
       });
     }
 
@@ -101,7 +127,7 @@ export const getEmployeeById = async (req, res) => {
       recommendations.push({
         type: 'recognition',
         title: 'Top Tier Performer',
-        text: `Overall score of ${metrics.overallScore}% qualifies for leadership mentorship and quarterly bonus nomination.`
+        text: `Overall score of ${metrics.overallScore}% qualifies for leadership mentorship and quarterly appraisal.`
       });
     }
 
@@ -109,7 +135,7 @@ export const getEmployeeById = async (req, res) => {
       recommendations.push({
         type: 'positive',
         title: 'Peak Efficiency',
-        text: 'Consistently exceeding delivery expectations. Consider assigning high-impact strategic initiatives.'
+        text: 'Consistently exceeding delivery expectations. Consider assigning high-impact initiatives.'
       });
     }
 
@@ -127,18 +153,11 @@ export const createEmployee = async (req, res) => {
   try {
     const data = { ...req.body };
 
-    // Auto-generate employeeId if not supplied
     if (!data.employeeId) {
       const count = await Employee.countDocuments();
       data.employeeId = `EMP-${1000 + count + 1}`;
     }
 
-    // Default avatar if not supplied
-    if (!data.avatar) {
-      data.avatar = `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`;
-    }
-
-    // Default monthly history if missing
     if (!data.monthlyHistory || data.monthlyHistory.length === 0) {
       const score = data.metrics?.overallScore || 85;
       data.monthlyHistory = [
@@ -173,20 +192,38 @@ export const updateEmployee = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    // Update top-level and nested metric properties
-    Object.keys(req.body).forEach(key => {
-      if (key === 'metrics') {
-        employee.metrics = { ...employee.metrics.toObject(), ...req.body.metrics };
-      } else {
-        employee[key] = req.body[key];
-      }
-    });
+    // HR can only modify salary, status, notes, tags, and kpiData
+    // Personal info (name, email, employeeId, department, role, joinDate) cannot be modified by HR
+    if (req.body.salary !== undefined) {
+      employee.salary = Number(req.body.salary);
+    }
+    if (req.body.status !== undefined) {
+      employee.status = req.body.status;
+    }
+    if (req.body.notes !== undefined) {
+      employee.notes = req.body.notes;
+    }
+    if (req.body.tags !== undefined) {
+      employee.tags = req.body.tags;
+    }
+    if (req.body.kpiData) {
+      employee.kpiData = {
+        ...employee.kpiData.toObject(),
+        ...req.body.kpiData
+      };
+    }
+    if (req.body.metrics) {
+      employee.metrics = {
+        ...employee.metrics.toObject(),
+        ...req.body.metrics
+      };
+    }
 
     await employee.save();
 
     res.json({
       success: true,
-      message: 'Employee updated successfully',
+      message: 'Employee updated successfully (Personal info preserved)',
       employee
     });
   } catch (error) {

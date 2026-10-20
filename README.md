@@ -1,63 +1,83 @@
-# HR Hub - Employee Performance Dashboard
-### SkillOrbit Human Resources Capstone Project
+# HR Hub Enterprise - Workforce Operations and Performance Platform
 
-![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=black)
-![Node.js](https://img.shields.io/badge/Node.js-24-339933?logo=node.js&logoColor=white)
-![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-Atlas%20%2F%20Embedded-47a248?logo=mongodb&logoColor=white)
-![Chart.js](https://img.shields.io/badge/Chart.js-4.5-ff6384?logo=chart.js&logoColor=white)
-![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38bdf8?logo=tailwindcss&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-8.3-646cff?logo=vite&logoColor=white)
-
-HR Hub is a full-stack HR analytics web application engineered to monitor, evaluate, and visualize workforce performance metrics across an enterprise organization. It provides HR leadership and department managers with data-backed visibility into employee output, attendance compliance, task velocity, and organizational efficiency.
+HR Hub Enterprise is a full-stack human resources analytics and workforce operations platform engineered for modern organizations. Built with a responsive semi-transparent light interface modeled after Zoho People, it provides role-based workspaces for HR Directors, Engineering Managers, and Employees.
 
 ---
 
-## Key Capabilities
+## Architectural Highlights
 
-* Multi-Department Management: Complete CRUD records management across Engineering, Product, Marketing, Sales, and Human Resources.
-* Fully Editable Records: Direct in-app editing of all employee profiles, roles, departments, salaries, and individual KPI metrics.
-* Dynamic Weighted KPI Engine: Calculates overall composite performance ratings based on standardized organizational weights:
-  * Attendance Rate: 20%
-  * Task Completion Rate: 25%
-  * Productivity Score: 25%
-  * Project Contribution: 15%
-  * Work Efficiency: 15%
-* Interactive Performance Simulator: Real-time slider tuner for simulating score outcomes and applying updates to any selected employee.
-* Interactive Chart.js Visualizations: 6-month historical telemetry trends, department competency radar and bar charts, tier distribution doughnuts, and top-performer rankings.
-* Automated Diagnostic Insights: Rule-based detection of underperforming personnel, attendance policy warnings (below 80%), leadership nominations (92%+), and workload optimization proposals.
-* Automated Reporting: Client-side vector PDF generation compiling executive summaries, department rankings, and employee scorecards, alongside raw CSV exports.
-* Role-Based Access Control (RBAC): Switchable demo perspectives for HR Director, Engineering Manager, and Individual Employee.
-* Dual-Mode Database Engine: Seamlessly connects to MongoDB Atlas cloud instances or runs an embedded in-memory MongoDB engine locally without requiring pre-installed database services.
+* Role-Based Access Control (RBAC):
+  * HR Director: Administrative control across workforce records, salary CTC and status calibration, real-time KPI evaluations, leave approval queues, and direct appraisal feedback. Personal identity details of employees remain protected from unauthorized alteration.
+  * Engineering Manager: Departmental oversight, sprint task allocations, team performance evaluations, and organization tree navigation.
+  * Employee Self-Service: Dedicated read-only scorecard portal showing personal task throughput, review ratings, attendance compliance, leave application submission, and feedback inbox from HR leadership.
 
----
+* Real-Time KPI Simulator:
+  * Dynamic mathematical calculation using exact decimal precision (0.0 to 10.0 scale, 0.1 step).
+  * Weighted formula: Task Completion Rate (40%) + HR Review Score (40%) + Attendance Compliance Rate (20%).
+  * Instant automatic percentage evaluation and performance band categorizations: Exceptional (92%+), Strong Performer (82-91%), Meets Expectations (70-81%), Needs Improvement (60-69%), and Critical Attention (<60%).
 
-## Module Coverage
+* Organization Structure Panel (3-in-1 Unified Switcher):
+  * Employee Hierarchy Tree: Interactive reporting chains from executive council to team contributors.
+  * Department Tree: Corporate functional units branching into sub-teams and active headcounts.
+  * Department Directory: Business unit profiles with operating budgets, average KPI composites, and team rosters.
 
-| Module | Core Deliverables | Status |
-| :--- | :--- | :---: |
-| Module 1: Employee Data Management | Full CRUD operations, department & role tracking, multi-field search, status filtering, dual Table/Grid views, CSV export. | Complete |
-| Module 2: Performance Tracking System | Attendance %, Task completion rate, Productivity score, Project contribution, Work efficiency, interactive KPI Tuner simulator, task checklists. | Complete |
-| Module 3: HR Analytics Dashboard | Executive KPI metric cards, 6-month historical trend line chart, department competency radar/bar chart, rating tier doughnut, top performers leaderboard. | Complete |
-| Module 4: Performance Insights & Recommendations | Diagnostic alerts for underperforming staff, attendance threshold warnings, top talent recognition, and operational throughput recommendations. | Complete |
-| Module 5: Report Generation | Downloadable multi-page Executive PDF Report (via jsPDF & autotable), raw CSV export, monthly audit snapshots (Jul - Dec 2026). | Complete |
+* Leave Management and Automated Presence Sync:
+  * Employee submits leave applications with type (Casual, Sick, Privilege, WFH), date ranges, and reasons.
+  * HR review queue enables approval or rejection with custom decision notes.
+  * Approved applications automatically transition employee status to "On Leave".
+  * Top-right 5-second notification pop-up alerts HR upon dashboard entry whenever pending requests or presence changes occur.
 
----
+* Appraisal Messaging and Feedback Channel:
+  * HR Directors can dispatch direct performance notes categorized by Appraisal, Excellence Recognition, Improvement Plan, or Corporate Notice.
+  * Delivered directly into the employee's personal profile feedback inbox.
 
-## Tech Stack
+* Zero-Data State and On-Demand Demo Lifecycle:
+  * Platform functions without pre-loaded data, allowing manual employee onboarding and clean operational testing.
+  * Single-click generation loads a standard 15-person Indian enterprise dataset across Engineering, Product, Marketing, Sales, and Human Resources.
 
-* Frontend: React.js (Vite), Tailwind CSS v4, Lucide React, Chart.js, react-chartjs-2, jsPDF, jspdf-autotable.
-* Backend: Node.js, Express.js (ES Modules), Mongoose ODM, MongoDB Memory Server (local fallback), JWT authentication, Morgan logger.
-* Database: MongoDB (Atlas Cloud URI or Embedded In-Memory Database).
-* Deployment Configurations: Vercel (`frontend/vercel.json`) and Render (`render.yaml`).
+* Automated Document Generation:
+  * Client-side vector PDF generation compiling monthly executive summaries and workforce audit rosters.
+  * Instant CSV data export for spreadsheet analysis.
 
 ---
 
-## Quick Start (Local Setup)
+## Technical Specifications
 
-### Prerequisites
-* Node.js (v18+ or v24+)
-* npm (v9+)
+* Frontend:
+  * React.js (Vite)
+  * Tailwind CSS v4 (Light theme, semi-transparent frosted cards with backdrop blur)
+  * Chart.js and React-Chartjs-2 (6-month trajectory line charts, radar benchmarking, tier doughnuts)
+  * jsPDF and jspdf-autotable (vector PDF compilation)
+  * Lucide React icons (corporate iconography, zero emoji characters)
+
+* Backend:
+  * Node.js and Express.js (ES Modules)
+  * Mongoose ODM
+  * Embedded In-Memory MongoDB Engine (automatic local fallback, no external database installation required)
+  * JSON Web Token (JWT) role-based authorization
+  * REST API architecture with input validation
+
+---
+
+## Directory Structure
+
+* backend/
+  * config/db.js - Dual-mode database connection manager
+  * controllers/ - Business logic for auth, employees, performance, leaves, feedback, analytics, and reports
+  * models/ - Mongoose schemas for Employee, Department, and User
+  * routes/ - API endpoints
+  * test/ - Verification test suites
+  * seedData.js - 15-person Indian enterprise dataset
+  * server.js - Express server configuration
+
+* frontend/
+  * src/api/api.js - Centralized API client
+  * src/components/ - Reusable UI elements (Navbar, Sidebar, Avatar, AuthModal, NotificationToast, Toast, KpiCard, Modals)
+  * src/views/ - DashboardView, EmployeesView, PerformanceView, OrganizationView, LeaveManagementView, EmployeePortalView, InsightsView, ReportsView
+
+---
+
+## Local Setup Instructions
 
 ### 1. Installation
 ```bash
@@ -65,79 +85,41 @@ HR Hub is a full-stack HR analytics web application engineered to monitor, evalu
 git clone https://github.com/Shron03/HR-Hub.git
 cd HR-Hub
 
-# Install dependencies for both backend and frontend
+# Install dependencies
 npm run install:all
 ```
 
-### 2. Database Initialization
-```bash
-# Seeds initial 15-employee baseline across 5 departments
-npm run seed
-```
-
-### 3. Running Development Servers
+### 2. Run the Application
 Open two terminal windows:
 
-Terminal 1 (Backend API - Port 5000):
+Terminal 1 (Backend):
 ```bash
-npm run start:backend
-# API available at: http://localhost:5000
-# Health check: http://localhost:5000/health
+cd backend
+node server.js
 ```
 
-Terminal 2 (Frontend Client - Port 5173):
+Terminal 2 (Frontend):
 ```bash
-npm run start:frontend
-# Web application available at: http://localhost:5173
+cd frontend
+npm run dev
 ```
 
----
-
-## Verification and Quality Checks
-
-The codebase includes an automated verification test suite:
-
-* Stage 1: REST API & Schema Validation (`npm run test:backend`)
-* Stage 2: Database Persistence & Task Lifecycle (`npm run test:stage2`)
-* Stage 3: KPI Mathematical Precision & Boundary Conditions (`npm run test:stage3`)
-* Stage 4: Production Bundle Compilation (`npm run build`)
-* Stage 5: Full-Stack Integration, CORS & Resilience (`npm run test:stage5`)
+* Frontend Portal: http://localhost:5173
+* Backend API: http://localhost:5000
+* Health Endpoint: http://localhost:5000/health
 
 ---
 
-## REST API Reference
+## Default Authentication Credentials
 
-| Endpoint | Method | Description |
-| :--- | :---: | :--- |
-| `/health` | GET | Server health and uptime status |
-| `/api/auth/demo-login` | POST | Role-based login switcher (HR Director, Manager, Employee) |
-| `/api/employees` | GET | Paginated, filtered, and searchable employee roster |
-| `/api/employees/:id` | GET | Detailed employee profile with dynamic recommendations |
-| `/api/employees` | POST | Create new employee profile |
-| `/api/employees/:id` | PUT | Update employee details or performance metrics |
-| `/api/employees/:id` | DELETE | Delete employee profile |
-| `/api/performance/:id/metrics` | PUT | Calibrate and recalculate 5-axis employee KPIs |
-| `/api/performance/:id/tasks` | POST | Assign new project task to employee |
-| `/api/performance/:id/tasks/:taskId` | PUT | Update task completion status and recalculate rate |
-| `/api/analytics/dashboard` | GET | Executive KPI metrics, department analytics, and trends |
-| `/api/insights` | GET | Diagnostic alerts, attendance warnings, and suggestions |
-| `/api/reports/monthly` | GET | Structured monthly summary dataset for PDF export |
-| `/api/reports/seed/reset` | POST | Restore baseline 15-employee demo dataset |
+* HR Director:
+  * Email: hr@hrhub.in
+  * Password: password123
 
----
+* Engineering Manager:
+  * Email: manager@hrhub.in
+  * Password: password123
 
-## Deployment Instructions
-
-### Frontend (Vercel):
-* Connect GitHub repository to Vercel.
-* Root Directory: `frontend`
-* Build Command: `npm run build`
-* Output Directory: `dist`
-* Routing handled by `frontend/vercel.json`.
-
-### Backend (Render):
-* Create a Web Service on Render from the GitHub repository.
-* Root Directory: `backend`
-* Build Command: `npm install`
-* Start Command: `npm start`
-* Optional: set `MONGODB_URI` environment variable for MongoDB Atlas cloud cluster.
+* Employee:
+  * Email: aarav@hrhub.in
+  * Password: password123

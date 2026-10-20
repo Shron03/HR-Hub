@@ -5,10 +5,15 @@ import {
   createEmployee,
   updateEmployee,
   deleteEmployee,
-  bulkImportEmployees
+  bulkImportEmployees,
+  seedDemoEmployees,
+  clearAllEmployeesData
 } from '../controllers/employeeController.js';
 
 const router = express.Router();
+
+router.post('/seed-demo', seedDemoEmployees);
+router.post('/clear-all', clearAllEmployeesData);
 
 router.route('/')
   .get(getEmployees)
