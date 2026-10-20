@@ -26,7 +26,7 @@ export default function Sidebar({ activeTab, setActiveTab, counts = {} }) {
       module: 'Module 1',
       label: 'Employee Directory',
       icon: Users,
-      badge: counts.totalEmployees || '45',
+      badge: counts.totalEmployees || '15',
       glowColor: 'hover:border-indigo-500/40 hover:text-indigo-400'
     },
     {

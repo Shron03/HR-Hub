@@ -67,7 +67,7 @@ flowchart TD
 ## 5. Module Implementation Breakdown
 
 ### Module 1: Employee Data Management
-- **Schema & Validation**: `Employee` schema tracks unique identifiers (`EMP-1001` through `EMP-1045`), personal details, role, department, salary, tenure, and active status.
+- **Schema & Validation**: `Employee` schema tracks unique identifiers (`EMP-1001` through `EMP-1015`), personal details, role, department, salary, tenure, and active status.
 - **CRUD Operations**: Complete REST endpoints (`GET /api/employees`, `POST /api/employees`, `PUT /api/employees/:id`, `DELETE /api/employees/:id`).
 - **Interactive Directory UI**: Live search filter across name, role, email, and ID; department tab filters; category pills; and dual-mode layout (Sortable Data Table vs Card Grid).
 - **Employee Creation Modal**: Live preview of composite KPI score before saving new employee records.
@@ -125,7 +125,7 @@ In accordance with strict verification directives, the system underwent 5 distin
 # 1. Install dependencies
 npm run install:all
 
-# 2. Seed realistic dataset (45 employees across 5 departments)
+# 2. Seed realistic dataset (15 employees across 5 departments)
 npm run seed
 
 # 3. Launch Backend API (Port 5000)

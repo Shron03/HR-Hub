@@ -86,7 +86,7 @@
 ### Slide 8: Module 5 — Report Generation Center
 - **Executive PDF Export**:
   - High-resolution, multi-page branded PDF report.
-  - Includes audit summary metrics, department ranking tables, and complete 45-employee scorecards.
+  - Includes audit summary metrics, department ranking tables, and complete 15-employee scorecards.
 - **Raw CSV Data Export**:
   - Instant tabular download compatible with Microsoft Excel and Google Sheets.
 - **Historical Monthly Snapshots**:
@@ -104,8 +104,8 @@
 ---
 
 ### Slide 10: Live Demonstration Highlights
-- 1-Click Role Switcher (HR Director 👑, Engineering Manager 💼, Employee 👤).
-- 1-Click Demo Reset to restore baseline 45-employee dataset instantly.
+- Role-based access switching (HR Director, Engineering Manager, Employee).
+- Database baseline restore for fresh testing.
 - Live slider adjustments demonstrating reactive score recalculation.
 - Interactive modal drill-downs showing 5-axis competency radars.
 

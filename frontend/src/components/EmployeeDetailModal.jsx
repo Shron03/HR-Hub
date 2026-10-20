@@ -12,7 +12,8 @@ import {
   Briefcase,
   AlertCircle,
   Lightbulb,
-  CheckCircle2
+  CheckCircle2,
+  Edit3
 } from 'lucide-react';
 import { Radar, Line } from 'react-chartjs-2';
 
@@ -22,7 +23,8 @@ export default function EmployeeDetailModal({
   employee,
   recommendations = [],
   onToggleTaskStatus,
-  onAddTask
+  onAddTask,
+  onEdit
 }) {
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState('Medium');
@@ -132,6 +134,16 @@ export default function EmployeeDetailModal({
                 {metrics.overallScore}%
               </span>
             </div>
+            {onEdit && (
+              <button
+                onClick={() => onEdit(employee)}
+                className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 text-cyan-300 text-xs font-medium cursor-pointer transition-colors"
+                title="Edit Employee Information and Metrics"
+              >
+                <Edit3 className="w-3.5 h-3.5" />
+                <span>Edit</span>
+              </button>
+            )}
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"

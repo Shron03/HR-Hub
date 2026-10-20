@@ -45,7 +45,7 @@ async function runTests() {
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
     if (!data.success || !Array.isArray(data.employees)) throw new Error('Invalid employees payload');
-    if (data.totalCount < 40) throw new Error(`Expected at least 40 employees, got ${data.totalCount}`);
+    if (data.totalCount !== 15) throw new Error(`Expected exactly 15 employees, got ${data.totalCount}`);
   });
 
   // Test 4: Single Employee Lookup by EMP-ID

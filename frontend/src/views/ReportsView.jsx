@@ -21,10 +21,10 @@ export default function ReportsView({ reportData, employees = [], onExportCsv })
   const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   const metadata = reportData?.reportMetadata || {
     reportPeriod: `${selectedMonth} 2026`,
-    totalHeadcount: employees.length || 45,
-    avgScore: 87.4,
-    avgAttendance: 91.8,
-    totalTasksCompleted: 412
+    totalHeadcount: employees.length || 15,
+    avgScore: 88.2,
+    avgAttendance: 91.5,
+    totalTasksCompleted: 142
   };
 
   const deptRankings = reportData?.departmentRankings || [];

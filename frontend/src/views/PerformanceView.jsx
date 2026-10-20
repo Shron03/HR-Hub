@@ -147,7 +147,7 @@ export default function PerformanceView({ employees = [], onUpdateEmployeeMetric
         {/* Live KPI Calibration Tuner (2 cols) */}
         <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-slate-800/80 bg-slate-950/60 flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
               <div>
                 <h2 className="text-base font-semibold text-white flex items-center space-x-2">
                   <Sliders className="w-4 h-4 text-emerald-400" />
@@ -156,18 +156,36 @@ export default function PerformanceView({ employees = [], onUpdateEmployeeMetric
                 <p className="text-xs text-slate-400 mt-0.5">
                   {editingEmployee
                     ? `Calibrating metrics for ${editingEmployee.name} (${editingEmployee.employeeId})`
-                    : 'Adjust sliders to simulate organizational KPI tier outcome'}
+                    : 'Select any employee to calibrate or adjust sliders for testing'}
                 </p>
               </div>
 
-              {editingEmployee && (
-                <button
-                  onClick={() => setEditingEmployee(null)}
-                  className="text-xs text-slate-400 hover:text-slate-200 underline cursor-pointer"
+              <div className="flex items-center space-x-2">
+                <select
+                  value={editingEmployee?._id || editingEmployee?.employeeId || ''}
+                  onChange={(e) => {
+                    const selected = employees.find(emp => emp._id === e.target.value || emp.employeeId === e.target.value);
+                    if (selected) loadEmployeeIntoTuner(selected);
+                    else setEditingEmployee(null);
+                  }}
+                  className="px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-200 focus:outline-none focus:border-cyan-500 cursor-pointer max-w-[220px]"
                 >
-                  Clear Selection
-                </button>
-              )}
+                  <option value="">-- Select Employee --</option>
+                  {employees.map(emp => (
+                    <option key={emp._id || emp.employeeId} value={emp._id || emp.employeeId}>
+                      {emp.name} ({emp.department})
+                    </option>
+                  ))}
+                </select>
+                {editingEmployee && (
+                  <button
+                    onClick={() => setEditingEmployee(null)}
+                    className="text-xs text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Sliders Grid */}

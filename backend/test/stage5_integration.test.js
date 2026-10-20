@@ -43,10 +43,10 @@ async function testIntegrationAndResilience() {
   // 4. Test Seed & Reset Verification
   const resetRes = await fetch(`${BASE_URL}/api/reports/seed/reset`, { method: 'POST' });
   const resetData = await resetRes.json();
-  if (!resetData.success || resetData.result.employeesCount !== 45) {
-    throw new Error(`Expected exactly 45 employees after reset, got ${resetData.result?.employeesCount}`);
+  if (!resetData.success || resetData.result.employeesCount !== 15) {
+    throw new Error(`Expected exactly 15 employees after reset, got ${resetData.result?.employeesCount}`);
   }
-  console.log(`  ✅ Database Reset Endpoint verified: Restored ${resetData.result.employeesCount} employees & ${resetData.result.departmentsCount} departments`);
+  console.log(`  [OK] Database Reset Endpoint verified: Restored ${resetData.result.employeesCount} employees & ${resetData.result.departmentsCount} departments`);
 
   console.log('\n🎉 Verification Check 5: PASSED!\n');
 }

@@ -47,12 +47,12 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
   const [chartMode, setChartMode] = useState('radar'); // 'radar' or 'bar'
 
   const stats = analyticsData?.stats || {
-    totalHeadcount: 45,
-    avgPerformanceScore: 87.4,
-    avgAttendanceRate: 91.8,
-    avgTaskCompletion: 88.5,
-    topPerformersCount: 16,
-    atRiskCount: 4
+    totalHeadcount: 15,
+    avgPerformanceScore: 88.2,
+    avgAttendanceRate: 91.5,
+    avgTaskCompletion: 87.8,
+    topPerformersCount: 5,
+    atRiskCount: 3
   };
 
   const depts = analyticsData?.departmentAnalytics || [];

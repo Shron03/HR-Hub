@@ -5,6 +5,9 @@ import {
   UserCheck,
   ChevronDown,
   Sparkles,
+  ShieldCheck,
+  Briefcase,
+  User,
   ShieldAlert,
   Layers,
   Bell
@@ -14,9 +17,9 @@ export default function Navbar({ currentUser, onSwitchRole, onResetData, isReset
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
 
   const roles = [
-    { role: 'HR Director', label: 'HR Director (Executive)', icon: '👑', color: 'text-amber-400' },
-    { role: 'Engineering Manager', label: 'Engineering Manager', icon: '💼', color: 'text-cyan-400' },
-    { role: 'Employee', label: 'Employee (Individual Contributor)', icon: '👤', color: 'text-emerald-400' }
+    { role: 'HR Director', label: 'HR Director (Executive)', icon: ShieldCheck, color: 'text-amber-400' },
+    { role: 'Engineering Manager', label: 'Engineering Manager', icon: Briefcase, color: 'text-cyan-400' },
+    { role: 'Employee', label: 'Employee (Individual Contributor)', icon: User, color: 'text-emerald-400' }
   ];
 
   return (
@@ -75,26 +78,29 @@ export default function Navbar({ currentUser, onSwitchRole, onResetData, isReset
                 <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
                   Switch Active Role (RBAC)
                 </div>
-                {roles.map(r => (
-                  <button
-                    key={r.role}
-                    onClick={() => {
-                      onSwitchRole(r.role);
-                      setRoleMenuOpen(false);
-                    }}
-                    className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-slate-800/80 transition-colors cursor-pointer ${
-                      currentUser?.role === r.role ? 'bg-cyan-950/40 text-cyan-300 font-semibold' : 'text-slate-300'
-                    }`}
-                  >
-                    <span className="flex items-center space-x-2">
-                      <span>{r.icon}</span>
-                      <span>{r.label}</span>
-                    </span>
-                    {currentUser?.role === r.role && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                    )}
-                  </button>
-                ))}
+                {roles.map(r => {
+                  const IconComponent = r.icon;
+                  return (
+                    <button
+                      key={r.role}
+                      onClick={() => {
+                        onSwitchRole(r.role);
+                        setRoleMenuOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between hover:bg-slate-800/80 transition-colors cursor-pointer ${
+                        currentUser?.role === r.role ? 'bg-cyan-950/40 text-cyan-300 font-semibold' : 'text-slate-300'
+                      }`}
+                    >
+                      <span className="flex items-center space-x-2">
+                        <IconComponent className={`w-3.5 h-3.5 ${r.color}`} />
+                        <span>{r.label}</span>
+                      </span>
+                      {currentUser?.role === r.role && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

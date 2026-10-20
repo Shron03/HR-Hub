@@ -20,6 +20,7 @@ export default function EmployeesView({
   loading,
   onSelectEmployee,
   onOpenAddModal,
+  onOpenEditModal,
   onDeleteEmployee,
   onExportCsv
 }) {
@@ -252,6 +253,13 @@ export default function EmployeesView({
                           <Eye className="w-3.5 h-3.5" />
                         </button>
                         <button
+                          onClick={() => onOpenEditModal(emp)}
+                          title="Edit Employee"
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 cursor-pointer"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+                        <button
                           onClick={() => onDeleteEmployee(emp._id || emp.employeeId, emp.name)}
                           title="Delete Employee"
                           className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
@@ -326,7 +334,16 @@ export default function EmployeesView({
               </div>
 
               <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
-                <span className="text-slate-400">{emp.location}</span>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onOpenEditModal(emp);
+                  }}
+                  className="text-slate-400 hover:text-cyan-300 flex items-center space-x-1 cursor-pointer transition-colors"
+                >
+                  <Edit className="w-3.5 h-3.5" />
+                  <span>Edit</span>
+                </button>
                 <span className="text-cyan-400 group-hover:translate-x-1 transition-transform flex items-center">
                   View Profile &rarr;
                 </span>

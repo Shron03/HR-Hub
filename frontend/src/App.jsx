@@ -30,6 +30,7 @@ export default function App() {
 
   // Modals & Popups
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [employeeToEdit, setEmployeeToEdit] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedRecommendations, setSelectedRecommendations] = useState([]);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -92,13 +93,26 @@ export default function App() {
       const res = await api.resetDemoData();
       if (res.success) {
         await loadAllData();
-        showToast('Database reset to fresh 45-employee dataset!', 'success');
+        showToast('Database reset to fresh 15-employee baseline', 'success');
       }
     } catch (err) {
       showToast('Error resetting data: ' + err.message, 'error');
     } finally {
       setIsResetting(false);
     }
+  };
+
+  // Open Add Modal
+  const handleOpenAddModal = () => {
+    setEmployeeToEdit(null);
+    setIsAddModalOpen(true);
+  };
+
+  // Open Edit Modal
+  const handleOpenEditModal = (emp) => {
+    setEmployeeToEdit(emp);
+    setIsDetailModalOpen(false);
+    setIsAddModalOpen(true);
   };
 
   // View Employee Details
@@ -115,16 +129,27 @@ export default function App() {
     }
   };
 
-  // Add Employee
-  const handleCreateEmployee = async (newEmpData) => {
+  // Save (Create or Update) Employee
+  const handleSaveEmployee = async (empData, id) => {
     try {
-      const res = await api.createEmployee(newEmpData);
-      if (res.success) {
-        showToast(`Employee ${res.employee.name} added successfully!`, 'success');
-        await loadAllData();
+      if (id) {
+        const res = await api.updateEmployee(id, empData);
+        if (res.success) {
+          showToast(`Updated ${res.employee.name} successfully`, 'success');
+          await loadAllData();
+          if (selectedEmployee && (selectedEmployee._id === id || selectedEmployee.employeeId === id)) {
+            setSelectedEmployee(res.employee);
+          }
+        }
+      } else {
+        const res = await api.createEmployee(empData);
+        if (res.success) {
+          showToast(`Added ${res.employee.name} successfully`, 'success');
+          await loadAllData();
+        }
       }
     } catch (err) {
-      showToast('Failed to add employee: ' + err.message, 'error');
+      showToast('Error saving employee: ' + err.message, 'error');
     }
   };
 
@@ -291,7 +316,8 @@ export default function App() {
                 employees={employees}
                 loading={loading}
                 onSelectEmployee={handleSelectEmployee}
-                onOpenAddModal={() => setIsAddModalOpen(true)}
+                onOpenAddModal={handleOpenAddModal}
+                onOpenEditModal={handleOpenEditModal}
                 onDeleteEmployee={handleDeleteEmployee}
                 onExportCsv={handleExportCsv}
               />
@@ -326,8 +352,12 @@ export default function App() {
       {/* Modals */}
       <AddEmployeeModal
         isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSave={handleCreateEmployee}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setEmployeeToEdit(null);
+        }}
+        onSave={handleSaveEmployee}
+        employeeToEdit={employeeToEdit}
       />
 
       <EmployeeDetailModal
@@ -337,6 +367,7 @@ export default function App() {
         recommendations={selectedRecommendations}
         onToggleTaskStatus={handleToggleTaskStatus}
         onAddTask={handleAddTask}
+        onEdit={handleOpenEditModal}
       />
 
       {/* Toast Notification */}
