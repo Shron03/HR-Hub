@@ -5,12 +5,12 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Plus,
   Send,
-  User,
   Filter,
   Check,
-  X
+  X,
+  ShieldCheck,
+  FileText
 } from 'lucide-react';
 import Avatar from '../components/Avatar';
 import { api } from '../api/api';
@@ -25,13 +25,40 @@ export default function LeaveManagementView({
   const [filterStatus, setFilterStatus] = useState('All'); // 'All', 'Pending', 'Approved', 'Rejected'
   
   // Apply Leave form state (for Employee)
+  const todayStr = new Date().toISOString().split('T')[0];
   const [leaveType, setLeaveType] = useState('Casual Leave');
-  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(todayStr);
+  const [endDate, setEndDate] = useState(todayStr);
   const [days, setDays] = useState(1);
   const [reason, setReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [decisionNotes, setDecisionNotes] = useState({});
+
+  // Real-time calculation of days and blocking previous dates
+  const handleStartDateChange = (newStart) => {
+    setStartDate(newStart);
+    let nextEnd = endDate;
+    if (new Date(endDate) < new Date(newStart)) {
+      nextEnd = newStart;
+      setEndDate(newStart);
+    }
+    calculateDays(newStart, nextEnd);
+  };
+
+  const handleEndDateChange = (newEnd) => {
+    setEndDate(newEnd);
+    calculateDays(startDate, newEnd);
+  };
+
+  const calculateDays = (startStr, endStr) => {
+    const s = new Date(startStr);
+    const e = new Date(endStr);
+    if (!isNaN(s.getTime()) && !isNaN(e.getTime()) && e >= s) {
+      const diffMs = e.getTime() - s.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
+      setDays(Math.max(1, diffDays));
+    }
+  };
 
   const fetchLeaves = async () => {
     try {
@@ -54,7 +81,7 @@ export default function LeaveManagementView({
   const handleApplyLeave = async (e) => {
     e.preventDefault();
     if (!reason.trim()) {
-      showToast('Please provide a reason for the leave application', 'error');
+      showToast('Please provide an official justification for the absence request', 'error');
       return;
     }
 
@@ -70,13 +97,13 @@ export default function LeaveManagementView({
       });
 
       if (res.success) {
-        showToast('Leave request submitted to HR Director for approval', 'success');
+        showToast('Absence request successfully routed to HR Director for authorization', 'success');
         setReason('');
         await fetchLeaves();
         if (onRefreshData) onRefreshData();
       }
     } catch (err) {
-      showToast('Failed to submit leave: ' + err.message, 'error');
+      showToast('Failed to submit time off request: ' + err.message, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -85,19 +112,19 @@ export default function LeaveManagementView({
   const handleUpdateStatus = async (leaveId, status) => {
     try {
       const note = decisionNotes[leaveId] || '';
-      const res = await api.updateLeaveStatus(leaveId, status, note);
+      const res = await api.updateLeaveStatus(leaveId, status, note, currentUser?.role);
       if (res.success) {
         showToast(
           status === 'Approved'
-            ? 'Leave approved. Employee status updated to "On Leave".'
-            : 'Leave marked as rejected.',
+            ? 'Leave authorized. Employee presence synchronized to "On Leave".'
+            : 'Leave request declined.',
           status === 'Approved' ? 'success' : 'info'
         );
         await fetchLeaves();
         if (onRefreshData) onRefreshData();
       }
     } catch (err) {
-      showToast('Failed to update leave status: ' + err.message, 'error');
+      showToast('Action failed: ' + err.message, 'error');
     }
   };
 
@@ -108,7 +135,6 @@ export default function LeaveManagementView({
   // Filter leaves
   const displayedLeaves = leaves.filter(l => {
     if (isEmployee) {
-      // Employee sees only their own leaves
       if (l.employeeId !== currentUser.employeeId && l.employeeId !== 'EMP-1001') {
         return false;
       }
@@ -124,18 +150,28 @@ export default function LeaveManagementView({
   const onLeaveCount = leaves.filter(l => l.currentEmployeeStatus === 'On Leave' || l.status === 'Approved').length;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in text-slate-800">
       
-      {/* Header */}
+      {/* Header Banner */}
       <div className="glass-panel rounded-2xl p-6 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
-            Leave & Attendance Management
+          <div className="flex items-center space-x-2">
+            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+              Absence & Time Off Administration
+            </span>
+            <span className="text-xs text-slate-500">
+              Workforce Presence Registry
+            </span>
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-1.5">
+            Leave Requests & Presence Management
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
             {isEmployee
-              ? 'Apply for planned absences and monitor approval decisions from HR'
-              : 'Review pending employee leave applications, issue approvals, and sync real-time workforce presence'}
+              ? 'Submit planned leave applications and track managerial authorization statuses in real-time.'
+              : isHR
+              ? 'Authoritative review queue to grant or decline workforce absence applications with automatic presence status synchronization.'
+              : 'Departmental presence schedule view. (Formal authorization permissions restricted to Human Resources).'}
           </p>
         </div>
 
@@ -143,15 +179,15 @@ export default function LeaveManagementView({
         <div className="flex items-center space-x-3">
           <div className="px-3.5 py-2 rounded-xl bg-orange-50 border border-orange-200 text-center">
             <div className="text-xs font-bold text-orange-700">{pendingCount}</div>
-            <div className="text-[10px] text-orange-600">Pending Review</div>
+            <div className="text-[10px] text-orange-600 font-medium">Pending Review</div>
           </div>
           <div className="px-3.5 py-2 rounded-xl bg-blue-50 border border-blue-200 text-center">
             <div className="text-xs font-bold text-blue-700">{onLeaveCount}</div>
-            <div className="text-[10px] text-blue-600">Currently On Leave</div>
+            <div className="text-[10px] text-blue-600 font-medium">Currently On Leave</div>
           </div>
           <div className="px-3.5 py-2 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
             <div className="text-xs font-bold text-emerald-700">{approvedCount}</div>
-            <div className="text-[10px] text-emerald-600">Approved</div>
+            <div className="text-[10px] text-emerald-600 font-medium">Approved</div>
           </div>
         </div>
       </div>
@@ -161,19 +197,19 @@ export default function LeaveManagementView({
         <div className="glass-panel rounded-2xl p-6 border border-slate-200/90 bg-white/90 shadow-sm">
           <h2 className="text-base font-bold text-slate-900 mb-3 flex items-center space-x-2">
             <Calendar className="w-5 h-5 text-blue-600" />
-            <span>Submit New Leave Application</span>
+            <span>Submit Time Off Application</span>
           </h2>
 
           <form onSubmit={handleApplyLeave} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Leave Type
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Leave Classification
                 </label>
                 <select
                   value={leaveType}
                   onChange={(e) => setLeaveType(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                 >
                   <option value="Casual Leave">Casual Leave (CL)</option>
                   <option value="Sick Leave">Sick Leave (SL)</option>
@@ -183,59 +219,54 @@ export default function LeaveManagementView({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   Start Date
                 </label>
                 <input
                   type="date"
                   required
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
                   End Date
                 </label>
                 <input
                   type="date"
                   required
+                  min={startDate}
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  onChange={(e) => handleEndDateChange(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">
-                  Total Days
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Calculated Duration
                 </label>
-                <input
-                  type="number"
-                  min="0.5"
-                  step="0.5"
-                  max="30"
-                  required
-                  value={days}
-                  onChange={(e) => setDays(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-                />
+                <div className="w-full px-3 py-2 text-xs rounded-xl border border-blue-200 bg-blue-50 font-bold font-mono text-blue-700 flex items-center justify-between">
+                  <span>{days} Day(s)</span>
+                  <span className="text-[10px] text-blue-500 font-normal">Auto-Computed</span>
+                </div>
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
-                Reason / Remarks for HR
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Justification & Handover Arrangements
               </label>
               <textarea
                 rows="2"
                 required
-                placeholder="State reason for absence and brief handover arrangements..."
+                placeholder="State operational reason for absence and brief handover arrangements..."
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                className="w-full px-3 py-2 text-xs rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white"
               />
             </div>
 
@@ -243,10 +274,10 @@ export default function LeaveManagementView({
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-md flex items-center space-x-2 cursor-pointer disabled:opacity-60"
+                className="btn-large bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer disabled:opacity-60"
               >
                 <Send className="w-4 h-4" />
-                <span>{submitting ? 'Submitting to HR...' : 'Submit Application'}</span>
+                <span>{submitting ? 'Submitting...' : 'Dispatch Application to HR'}</span>
               </button>
             </div>
           </form>
@@ -279,12 +310,12 @@ export default function LeaveManagementView({
       {/* LEAVES LIST */}
       <div className="glass-panel rounded-2xl border border-slate-200/90 bg-white/90 shadow-sm overflow-hidden">
         {loading ? (
-          <div className="p-8 text-center text-xs text-slate-500">
-            Loading leave requests...
+          <div className="p-8 text-center text-xs text-slate-400">
+            Loading time off records...
           </div>
         ) : displayedLeaves.length === 0 ? (
           <div className="p-10 text-center text-xs text-slate-400">
-            No leave records found under current filter.
+            No time off records match the selected filter.
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -320,7 +351,7 @@ export default function LeaveManagementView({
                         <div className="text-xs text-slate-600 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
                           <span className="font-semibold text-slate-800">{leave.type}</span>
                           <span>•</span>
-                          <span>{leave.days} day(s)</span>
+                          <span className="font-bold text-blue-600">{leave.days} Day(s)</span>
                           <span>•</span>
                           <span>{leave.startDate} to {leave.endDate}</span>
                         </div>
@@ -331,7 +362,7 @@ export default function LeaveManagementView({
 
                         {leave.decisionNote && (
                           <div className="text-xs text-slate-600 mt-1 font-medium">
-                            HR Decision Note: <span className="italic">{leave.decisionNote}</span>
+                            Administrative Note: <span className="italic">{leave.decisionNote}</span>
                           </div>
                         )}
                       </div>
@@ -349,12 +380,12 @@ export default function LeaveManagementView({
                         {leave.status}
                       </span>
 
-                      {/* HR Actions if pending and user is HR or Manager */}
-                      {(isHR || isManager) && isPending && (
+                      {/* HR ONLY Authorization Controls */}
+                      {isHR && isPending && (
                         <div className="flex items-center space-x-2">
                           <input
                             type="text"
-                            placeholder="Approval note (optional)..."
+                            placeholder="Decision note (optional)..."
                             value={decisionNotes[leave.id] || ''}
                             onChange={(e) => setDecisionNotes({
                               ...decisionNotes,
@@ -367,16 +398,23 @@ export default function LeaveManagementView({
                             className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs flex items-center space-x-1 shadow-sm cursor-pointer"
                           >
                             <Check className="w-3.5 h-3.5" />
-                            <span>Approve</span>
+                            <span>Authorize</span>
                           </button>
                           <button
                             onClick={() => handleUpdateStatus(leave.id, 'Rejected')}
                             className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold text-xs flex items-center space-x-1 shadow-sm cursor-pointer"
                           >
                             <X className="w-3.5 h-3.5" />
-                            <span>Reject</span>
+                            <span>Decline</span>
                           </button>
                         </div>
+                      )}
+
+                      {/* Engineering Manager informational notice */}
+                      {isManager && isPending && (
+                        <span className="text-[11px] text-slate-400 italic">
+                          Awaiting HR Director authorization
+                        </span>
                       )}
                     </div>
 

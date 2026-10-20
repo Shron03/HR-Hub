@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
-import Sidebar from './components/Sidebar';
 import DashboardView from './views/DashboardView';
 import EmployeesView from './views/EmployeesView';
 import PerformanceView from './views/PerformanceView';
 import OrganizationView from './views/OrganizationView';
 import LeaveManagementView from './views/LeaveManagementView';
 import EmployeePortalView from './views/EmployeePortalView';
+import EmployeeFeedbackHistoryView from './views/EmployeeFeedbackHistoryView';
+import DepartmentInfoView from './views/DepartmentInfoView';
 import InsightsView from './views/InsightsView';
 import ReportsView from './views/ReportsView';
 import AddEmployeeModal from './components/AddEmployeeModal';
 import EmployeeDetailModal from './components/EmployeeDetailModal';
+import RegistrationApprovalsModal from './components/RegistrationApprovalsModal';
+import NotificationDrawer from './components/NotificationDrawer';
 import AuthModal from './components/AuthModal';
 import NotificationToast from './components/NotificationToast';
 import Toast from './components/Toast';
@@ -23,7 +26,19 @@ export default function App() {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const isEmployee = currentUser?.role === 'Employee';
+  const isHR = currentUser?.role === 'HR Director' || !currentUser?.role;
+
+  const [activeTab, setActiveTab] = useState(() => {
+    const savedUser = localStorage.getItem('hrhub_user');
+    if (savedUser) {
+      try {
+        const u = JSON.parse(savedUser);
+        return u.role === 'Employee' ? 'portal' : 'dashboard';
+      } catch (e) {}
+    }
+    return 'dashboard';
+  });
 
   // Application Data
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -31,11 +46,14 @@ export default function App() {
   const [insightsData, setInsightsData] = useState(null);
   const [reportData, setReportData] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [pendingRegistrations, setPendingRegistrations] = useState([]);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isOperatingData, setIsOperatingData] = useState(false);
 
-  // Modals & Popups
+  // Modals & Drawers
+  const [isNotificationDrawerOpen, setIsNotificationDrawerOpen] = useState(false);
+  const [isRegistrationsModalOpen, setIsRegistrationsModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [employeeToEdit, setEmployeeToEdit] = useState(null);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -56,13 +74,24 @@ export default function App() {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [analyticsRes, employeesRes, insightsRes, reportRes, notifRes] = await Promise.all([
+      const promises = [
         api.getDashboardAnalytics().catch(() => ({ success: false })),
         api.getEmployees({ limit: 100 }).catch(() => ({ success: false })),
         api.getInsights().catch(() => ({ success: false })),
         api.getMonthlyReport('Dec').catch(() => ({ success: false })),
-        api.getNotifications().catch(() => ({ success: false }))
-      ]);
+        api.getNotifications({
+          role: currentUser?.role,
+          employeeId: currentUser?.employeeId,
+          userId: currentUser?.id
+        }).catch(() => ({ success: false }))
+      ];
+
+      if (currentUser?.role === 'HR Director') {
+        promises.push(api.getPendingRegistrations().catch(() => ({ success: false })));
+      }
+
+      const results = await Promise.all(promises);
+      const [analyticsRes, employeesRes, insightsRes, reportRes, notifRes, regRes] = results;
 
       if (analyticsRes?.success) setAnalyticsData(analyticsRes);
       if (employeesRes?.success) setEmployees(employeesRes.employees || []);
@@ -70,10 +99,14 @@ export default function App() {
       if (reportRes?.success) setReportData(reportRes);
       if (notifRes?.success && notifRes.notifications) {
         setNotifications(notifRes.notifications);
-        // Show 5-second notification pop-up for HR upon loading or home visit
-        if (currentUser?.role === 'HR Director' && notifRes.notifications.length > 0) {
+        // Show 5-second popup on load for HR if unread items exist
+        const unreadCount = notifRes.notifications.filter(n => !n.read).length;
+        if (currentUser?.role === 'HR Director' && unreadCount > 0) {
           setShowNotificationPopup(true);
         }
+      }
+      if (regRes?.success) {
+        setPendingRegistrations(regRes.registrations || []);
       }
     } catch (err) {
       console.error('Failed to load application data:', err);
@@ -86,6 +119,9 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       loadAllData();
+      if (currentUser.role === 'Employee' && activeTab === 'dashboard') {
+        setActiveTab('portal');
+      }
     }
   }, [currentUser]);
 
@@ -98,74 +134,51 @@ export default function App() {
     } else {
       setActiveTab('dashboard');
     }
-    showToast(`Welcome back, ${user.name} (${user.role})`, 'success');
+    showToast(`Authenticated as ${user.name} (${user.role})`, 'success');
   };
 
-  // Handle Logout
+  // Handle Logout (To switch roles, user signs out and logs in as another role)
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('hrhub_user');
-    showToast('Signed out successfully', 'info');
+    showToast('Signed out successfully. Select or sign in with another account.', 'info');
   };
 
-  // Handle Role Switch
-  const handleSwitchRole = async (newRole) => {
-    try {
-      const res = await api.demoLogin(newRole);
-      if (res.success && res.user) {
-        setCurrentUser(res.user);
-        localStorage.setItem('hrhub_user', JSON.stringify(res.user));
-        if (newRole === 'Employee') {
-          setActiveTab('portal');
-        } else {
-          setActiveTab('dashboard');
-        }
-        showToast(`Switched active view to ${newRole}`, 'success');
-        // Check for notifications
-        if (newRole === 'HR Director') {
-          const notifs = await api.getNotifications();
-          if (notifs.success && notifs.notifications?.length > 0) {
-            setNotifications(notifs.notifications);
-            setShowNotificationPopup(true);
-          }
-        }
-      }
-    } catch (err) {
-      setCurrentUser(prev => ({ ...prev, role: newRole }));
-      showToast(`Switched active role: ${newRole}`, 'info');
-    }
-  };
-
-  // Handle Demo Seeding (15 Indian Employees)
-  const handleSeedDemoData = async () => {
+  // Handle Demo Reset (Restores default 15 Indian employees)
+  const handleResetDemoData = async () => {
     try {
       setIsOperatingData(true);
       const res = await api.seedDemoData();
       if (res.success) {
         await loadAllData();
-        showToast('Generated 15 Indian employee records with KPI profiles', 'success');
+        showToast('Demo environment reset to standard 15-employee Indian dataset', 'success');
       }
     } catch (err) {
-      showToast('Error seeding demo data: ' + err.message, 'error');
+      showToast('Error resetting demo: ' + err.message, 'error');
     } finally {
       setIsOperatingData(false);
     }
   };
 
-  // Handle Clear All Data (Zero-data state)
-  const handleClearAllData = async () => {
-    if (!window.confirm('Are you sure you want to clear all employee records? System will enter empty state.')) return;
+  // Notification Mark Read Handlers
+  const handleMarkNotificationRead = async (id) => {
     try {
-      setIsOperatingData(true);
-      const res = await api.clearAllEmployees();
-      if (res.success) {
-        await loadAllData();
-        showToast('All employee records cleared. System in clean state.', 'info');
-      }
+      await api.markNotificationRead(id, currentUser?.id);
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, read: true } : n)
+      );
     } catch (err) {
-      showToast('Error clearing data: ' + err.message, 'error');
-    } finally {
-      setIsOperatingData(false);
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    try {
+      await api.markAllNotificationsRead(currentUser?.id);
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      showToast('All notifications marked as read', 'info');
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -202,7 +215,7 @@ export default function App() {
       if (id) {
         const res = await api.updateEmployee(id, empData);
         if (res.success) {
-          showToast(`Updated ${res.employee.name} successfully`, 'success');
+          showToast(`Updated profile for ${res.employee.name} successfully`, 'success');
           await loadAllData();
           if (selectedEmployee && (selectedEmployee._id === id || selectedEmployee.employeeId === id)) {
             setSelectedEmployee(res.employee);
@@ -211,7 +224,7 @@ export default function App() {
       } else {
         const res = await api.createEmployee(empData);
         if (res.success) {
-          showToast(`Added ${res.employee.name} successfully`, 'success');
+          showToast(`Enrolled ${res.employee.name} into Directory`, 'success');
           await loadAllData();
         }
       }
@@ -222,7 +235,7 @@ export default function App() {
 
   // Delete Employee
   const handleDeleteEmployee = async (id, name) => {
-    if (!window.confirm(`Are you sure you want to remove ${name}?`)) return;
+    if (!window.confirm(`Are you sure you want to remove ${name} from active records?`)) return;
     try {
       const res = await api.deleteEmployee(id);
       if (res.success) {
@@ -239,7 +252,7 @@ export default function App() {
     try {
       const res = await api.updateMetrics(id, metrics);
       if (res.success) {
-        showToast('Performance KPIs updated & percentage recalculated', 'success');
+        showToast('Performance KPIs updated & composite index synchronized', 'success');
         await loadAllData();
       }
     } catch (err) {
@@ -275,7 +288,7 @@ export default function App() {
     try {
       const res = await api.addTask(employeeId, taskData);
       if (res.success) {
-        showToast('New task assigned', 'success');
+        showToast('New deliverable assigned', 'success');
         if (selectedEmployee) {
           setSelectedEmployee({
             ...selectedEmployee,
@@ -286,7 +299,7 @@ export default function App() {
         await loadAllData();
       }
     } catch (err) {
-      showToast('Failed to add task: ' + err.message, 'error');
+      showToast('Failed to assign task: ' + err.message, 'error');
     }
   };
 
@@ -302,10 +315,10 @@ export default function App() {
       'Location',
       'Salary (INR)',
       'Status',
-      'Attendance Rate',
-      'Task Completion Rate',
-      'HR Review Score',
-      'Overall Score',
+      'Attendance Compliance',
+      'Deliverables Completion Rate',
+      'Managerial Review Rating',
+      'Composite KPI Score',
       'Performance Category'
     ];
 
@@ -315,7 +328,7 @@ export default function App() {
       e.email,
       e.department,
       `"${e.role}"`,
-      `"${e.location || 'India'}"`,
+      `"${e.location || 'Bengaluru, India'}"`,
       e.salary || 850000,
       e.status,
       e.metrics?.attendanceRate,
@@ -339,8 +352,8 @@ export default function App() {
     showToast('Exported CSV dataset successfully', 'success');
   };
 
-  // Pending leaves count
-  const pendingLeavesCount = notifications.filter(n => n.type === 'leave_request').length;
+  const unreadNotificationsCount = notifications.filter(n => !n.read).length;
+  const pendingLeavesCount = notifications.filter(n => n.category === 'leave_request' && !n.read).length;
 
   return (
     <div className="relative min-h-screen bg-[#f3f5f9] text-slate-900 flex flex-col font-sans">
@@ -357,7 +370,7 @@ export default function App() {
         <AuthModal onLoginSuccess={handleLoginSuccess} />
       ) : (
         <>
-          {/* Top-Right 5-Second HR Notification Toast */}
+          {/* Top-Right 5-Second HR Notification Popup */}
           {showNotificationPopup && (
             <NotificationToast
               notifications={notifications}
@@ -366,116 +379,163 @@ export default function App() {
             />
           )}
 
-          {/* Top Navbar */}
+          {/* Sticky Top Navigation Menu Header (Does not scroll away) */}
           <Navbar
             currentUser={currentUser}
-            onSwitchRole={handleSwitchRole}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
             onLogout={handleLogout}
-            onOpenNotifications={() => setShowNotificationPopup(true)}
-            notificationsCount={pendingLeavesCount}
-            onSeedDemoData={handleSeedDemoData}
-            onClearAllData={handleClearAllData}
+            onOpenNotifications={() => setIsNotificationDrawerOpen(true)}
+            unreadNotificationsCount={unreadNotificationsCount}
+            onResetDemo={handleResetDemoData}
             isOperatingData={isOperatingData}
+            pendingRegistrationsCount={pendingRegistrations.length}
+            onOpenRegistrationsModal={() => setIsRegistrationsModalOpen(true)}
+            counts={{
+              totalEmployees: employees.length,
+              totalInsights: (insightsData?.needingImprovement?.length || 0) + (insightsData?.highPerformers?.length || 0),
+              pendingLeaves: pendingLeavesCount
+            }}
           />
 
-          {/* Main Container */}
-          <main className="relative z-10 flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            <div className="flex flex-col md:flex-row gap-6">
+          {/* Notification Slide-out Drawer */}
+          <NotificationDrawer
+            isOpen={isNotificationDrawerOpen}
+            onClose={() => setIsNotificationDrawerOpen(false)}
+            notifications={notifications}
+            unreadCount={unreadNotificationsCount}
+            onMarkRead={handleMarkNotificationRead}
+            onMarkAllRead={handleMarkAllNotificationsRead}
+            onNavigateTab={(tab) => {
+              setActiveTab(tab);
+              setIsNotificationDrawerOpen(false);
+            }}
+          />
+
+          {/* Pending Registrations Modal for HR Director */}
+          {isHR && (
+            <RegistrationApprovalsModal
+              isOpen={isRegistrationsModalOpen}
+              onClose={() => setIsRegistrationsModalOpen(false)}
+              onRefresh={loadAllData}
+              showToast={showToast}
+            />
+          )}
+
+          {/* Main Full-Width Container (Stretched to fit desktop displays) */}
+          <main className="relative z-10 flex-1 w-full max-w-[98%] xl:max-w-[1720px] mx-auto px-3 sm:px-6 lg:px-8 py-5">
+            <div className="w-full">
               
-              {/* Sidebar */}
-              <Sidebar
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                currentUser={currentUser}
-                counts={{
-                  totalEmployees: employees.length,
-                  totalInsights: (insightsData?.needingImprovement?.length || 0) + (insightsData?.highPerformers?.length || 0),
-                  pendingLeaves: pendingLeavesCount
-                }}
-              />
-
               {/* Dynamic View Router */}
-              <section className="flex-1 min-w-0">
-                
-                {/* 1. Dashboard View */}
-                {activeTab === 'dashboard' && (
-                  <DashboardView
-                    analyticsData={analyticsData}
-                    onSelectEmployee={handleSelectEmployee}
-                    onNavigateTab={(tab) => setActiveTab(tab)}
-                  />
-                )}
+              
+              {/* 1. Dashboard View (HR & Manager only) */}
+              {activeTab === 'dashboard' && !isEmployee && (
+                <DashboardView
+                  analyticsData={analyticsData}
+                  onSelectEmployee={handleSelectEmployee}
+                  onNavigateTab={(tab) => setActiveTab(tab)}
+                />
+              )}
 
-                {/* 2. Employee Directory */}
-                {activeTab === 'employees' && (
-                  <EmployeesView
-                    employees={employees}
-                    loading={loading}
-                    onSelectEmployee={handleSelectEmployee}
-                    onOpenAddModal={handleOpenAddModal}
-                    onOpenEditModal={handleOpenEditModal}
-                    onDeleteEmployee={handleDeleteEmployee}
-                    onExportCsv={handleExportCsv}
-                    onSeedDemoData={handleSeedDemoData}
-                    onClearAllData={handleClearAllData}
-                    isOperatingData={isOperatingData}
-                  />
-                )}
+              {/* 2. Employee Directory (HR & Manager only) */}
+              {activeTab === 'employees' && !isEmployee && (
+                <EmployeesView
+                  employees={employees}
+                  loading={loading}
+                  onSelectEmployee={handleSelectEmployee}
+                  onOpenAddModal={handleOpenAddModal}
+                  onOpenEditModal={handleOpenEditModal}
+                  onDeleteEmployee={handleDeleteEmployee}
+                  onExportCsv={handleExportCsv}
+                  onSeedDemoData={handleResetDemoData}
+                  onClearAllData={async () => {
+                    if (!window.confirm('Clear all employee records? System will enter empty state.')) return;
+                    try {
+                      setIsOperatingData(true);
+                      const res = await api.clearAllEmployees();
+                      if (res.success) {
+                        await loadAllData();
+                        showToast('All employee records cleared.', 'info');
+                      }
+                    } catch (err) {
+                      showToast('Error: ' + err.message, 'error');
+                    } finally {
+                      setIsOperatingData(false);
+                    }
+                  }}
+                  isOperatingData={isOperatingData}
+                />
+              )}
 
-                {/* 3. Organization 3-in-1 Panel (Google/Zoho style) */}
-                {activeTab === 'organization' && (
-                  <OrganizationView
-                    employees={employees}
-                    onSelectEmployee={handleSelectEmployee}
-                  />
-                )}
+              {/* 3. Organization 3-in-1 Structure (HR & Manager only; Employees CANNOT see) */}
+              {activeTab === 'organization' && !isEmployee && (
+                <OrganizationView
+                  employees={employees}
+                  onSelectEmployee={handleSelectEmployee}
+                />
+              )}
 
-                {/* 4. Real-Time KPI Simulator */}
-                {activeTab === 'performance' && (
-                  <PerformanceView
-                    employees={employees}
-                    onUpdateEmployeeMetrics={handleUpdateEmployeeMetrics}
-                    onSelectEmployee={handleSelectEmployee}
-                    showToast={showToast}
-                  />
-                )}
+              {/* 4. Real-Time KPI Simulator (HR & Manager only) */}
+              {activeTab === 'performance' && !isEmployee && (
+                <PerformanceView
+                  employees={employees}
+                  onUpdateEmployeeMetrics={handleUpdateEmployeeMetrics}
+                  onSelectEmployee={handleSelectEmployee}
+                  showToast={showToast}
+                />
+              )}
 
-                {/* 5. Leave Management & Approvals */}
-                {activeTab === 'leaves' && (
-                  <LeaveManagementView
-                    currentUser={currentUser}
-                    onRefreshData={loadAllData}
-                    showToast={showToast}
-                  />
-                )}
+              {/* 5. Leave Management & Approvals (Accessible by all roles with role-tailored permissions) */}
+              {activeTab === 'leaves' && (
+                <LeaveManagementView
+                  currentUser={currentUser}
+                  onRefreshData={loadAllData}
+                  showToast={showToast}
+                />
+              )}
 
-                {/* 6. Employee Self-Service Portal */}
-                {activeTab === 'portal' && (
-                  <EmployeePortalView
-                    currentUser={currentUser}
-                    employees={employees}
-                    onNavigateTab={(tab) => setActiveTab(tab)}
-                  />
-                )}
+              {/* 6. Employee Self-Service Overview (For Employee role) */}
+              {activeTab === 'portal' && (
+                <EmployeePortalView
+                  currentUser={currentUser}
+                  employees={employees}
+                  onNavigateTab={(tab) => setActiveTab(tab)}
+                />
+              )}
 
-                {/* 7. Strategic Insights */}
-                {activeTab === 'insights' && (
-                  <InsightsView
-                    insightsData={insightsData}
-                    onSelectEmployee={handleSelectEmployee}
-                  />
-                )}
+              {/* 7. Employee Past Feedbacks & Appraisal History (For Employee role) */}
+              {activeTab === 'feedbacks' && (
+                <EmployeeFeedbackHistoryView
+                  currentUser={currentUser}
+                  employeeRecord={employees.find(e => e.employeeId === (currentUser?.employeeId || 'EMP-1001')) || employees[0]}
+                />
+              )}
 
-                {/* 8. Monthly Reports */}
-                {activeTab === 'reports' && (
-                  <ReportsView
-                    reportData={reportData}
-                    employees={employees}
-                    onExportCsv={handleExportCsv}
-                  />
-                )}
+              {/* 8. Employee Department Information (For Employee role) */}
+              {activeTab === 'department-info' && (
+                <DepartmentInfoView
+                  currentUser={currentUser}
+                  employees={employees}
+                />
+              )}
 
-              </section>
+              {/* 9. Strategic Insights (HR only) */}
+              {activeTab === 'insights' && !isEmployee && (
+                <InsightsView
+                  insightsData={insightsData}
+                  onSelectEmployee={handleSelectEmployee}
+                />
+              )}
+
+              {/* 10. Monthly Executive Reports (HR only) */}
+              {activeTab === 'reports' && !isEmployee && (
+                <ReportsView
+                  reportData={reportData}
+                  employees={employees}
+                  onExportCsv={handleExportCsv}
+                />
+              )}
+
             </div>
           </main>
 

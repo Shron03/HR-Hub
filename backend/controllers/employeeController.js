@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import Employee from '../models/Employee.js';
+import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 import { seedDatabase, clearEmployeesOnly } from '../seed.js';
 
 const findEmployee = async (id) => {
@@ -38,7 +40,7 @@ export const clearAllEmployeesData = async (req, res) => {
 
 export const getEmployees = async (req, res) => {
   try {
-    const { department, category, status, search, sort = 'score-desc', page = 1, limit = 50 } = req.query;
+    const { department, category, status, search, sort = 'score-desc', page = 1, limit = 100 } = req.query;
 
     const query = {};
 
@@ -107,35 +109,35 @@ export const getEmployeeById = async (req, res) => {
     const recommendations = [];
     const { metrics } = employee;
 
-    if (metrics.attendanceRate < 80) {
+    if (metrics?.attendanceRate < 80) {
       recommendations.push({
         type: 'warning',
         title: 'Attendance Risk Detected',
-        text: `Attendance is at ${metrics.attendanceRate}%. Schedule a 1-on-1 check-in to assess work-life balance.`
+        text: `Attendance is at ${metrics.attendanceRate}%. Schedule a consultation to review presence compliance.`
       });
     }
 
-    if (metrics.taskCompletionRate < 75) {
+    if (metrics?.taskCompletionRate < 75) {
       recommendations.push({
         type: 'improvement',
-        title: 'Task Throughput Bottleneck',
-        text: `Task completion rate is ${metrics.taskCompletionRate}%. Review current workload and dependencies.`
+        title: 'Deliverable Throughput Delay',
+        text: `Task completion rate is ${metrics.taskCompletionRate}%. Review sprint scope and dependency blockers.`
       });
     }
 
-    if (metrics.overallScore >= 92) {
+    if (metrics?.overallScore >= 92) {
       recommendations.push({
         type: 'recognition',
         title: 'Top Tier Performer',
-        text: `Overall score of ${metrics.overallScore}% qualifies for leadership mentorship and quarterly appraisal.`
+        text: `Composite score of ${metrics.overallScore}% qualifies for leadership succession nomination and merit appraisal.`
       });
     }
 
-    if (metrics.workEfficiency >= 90 && metrics.productivityScore >= 90) {
+    if (metrics?.workEfficiency >= 90 && metrics?.productivityScore >= 90) {
       recommendations.push({
         type: 'positive',
-        title: 'Peak Efficiency',
-        text: 'Consistently exceeding delivery expectations. Consider assigning high-impact initiatives.'
+        title: 'High Velocity Contributor',
+        text: 'Consistently exceeding delivery expectations. Recommended for strategic project ownership.'
       });
     }
 
@@ -173,9 +175,31 @@ export const createEmployee = async (req, res) => {
     const employee = new Employee(data);
     await employee.save();
 
+    // Create user account if not existing
+    const existingUser = await User.findOne({ email: employee.email.toLowerCase() });
+    if (!existingUser) {
+      await User.create({
+        name: employee.name,
+        email: employee.email.toLowerCase(),
+        password: 'password123',
+        role: employee.role.includes('Director') ? 'HR Director' : employee.role.includes('Manager') ? 'Engineering Manager' : 'Employee',
+        department: employee.department,
+        isApproved: true,
+        approvalStatus: 'Approved'
+      });
+    }
+
+    // Create Notification
+    await Notification.create({
+      title: 'New Employee Profile Created',
+      message: `${employee.name} (${employee.role}, ${employee.department}) was added to the organization roster (${employee.employeeId}).`,
+      category: 'system',
+      recipientRole: 'HR Director'
+    });
+
     res.status(201).json({
       success: true,
-      message: 'Employee created successfully',
+      message: 'Employee record created successfully',
       employee
     });
   } catch (error) {
@@ -192,13 +216,33 @@ export const updateEmployee = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    // HR can only modify salary, status, notes, tags, and kpiData
-    // Personal info (name, email, employeeId, department, role, joinDate) cannot be modified by HR
+    // Authorized HR edits: Role, Department, Salary, Status, Location, Manager, WorkMode, Phone, Notes, KPI
+    if (req.body.role !== undefined && req.body.role.trim() !== '') {
+      employee.role = req.body.role.trim();
+    }
+    if (req.body.department !== undefined && req.body.department.trim() !== '') {
+      employee.department = req.body.department.trim();
+    }
     if (req.body.salary !== undefined) {
       employee.salary = Number(req.body.salary);
     }
     if (req.body.status !== undefined) {
       employee.status = req.body.status;
+    }
+    if (req.body.location !== undefined) {
+      employee.location = req.body.location.trim();
+    }
+    if (req.body.managerName !== undefined) {
+      employee.managerName = req.body.managerName.trim();
+    }
+    if (req.body.workMode !== undefined) {
+      employee.workMode = req.body.workMode;
+    }
+    if (req.body.phone !== undefined) {
+      employee.phone = req.body.phone.trim();
+    }
+    if (req.body.experienceYears !== undefined) {
+      employee.experienceYears = Number(req.body.experienceYears);
     }
     if (req.body.notes !== undefined) {
       employee.notes = req.body.notes;
@@ -223,7 +267,7 @@ export const updateEmployee = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Employee updated successfully (Personal info preserved)',
+      message: `Employee ${employee.name} updated successfully`,
       employee
     });
   } catch (error) {

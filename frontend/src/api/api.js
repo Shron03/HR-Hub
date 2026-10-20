@@ -29,6 +29,25 @@ export const api = {
     return res.json();
   },
 
+  async getPendingRegistrations() {
+    const res = await fetch(`${API_BASE}/auth/registrations/pending`);
+    return res.json();
+  },
+
+  async approveRegistration(id) {
+    const res = await fetch(`${API_BASE}/auth/registrations/${id}/approve`, {
+      method: 'PUT'
+    });
+    return res.json();
+  },
+
+  async rejectRegistration(id) {
+    const res = await fetch(`${API_BASE}/auth/registrations/${id}/reject`, {
+      method: 'PUT'
+    });
+    return res.json();
+  },
+
   // Employees Directory & Records
   async getEmployees(params = {}) {
     const query = new URLSearchParams(params).toString();
@@ -127,17 +146,37 @@ export const api = {
     return res.json();
   },
 
-  async updateLeaveStatus(leaveId, status, decisionNote = '') {
+  async updateLeaveStatus(leaveId, status, decisionNote = '', callerRole = 'HR Director') {
     const res = await fetch(`${API_BASE}/leaves/${leaveId}/status`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, decisionNote })
+      body: JSON.stringify({ status, decisionNote, callerRole })
     });
     return res.json();
   },
 
-  async getNotifications() {
-    const res = await fetch(`${API_BASE}/leaves/notifications`);
+  // Multi-Message Notification Hub with 3-Day Scope & Role Separation
+  async getNotifications(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE}/leaves/notifications?${query}`);
+    return res.json();
+  },
+
+  async markNotificationRead(id, userIdentifier) {
+    const res = await fetch(`${API_BASE}/leaves/notifications/${id}/read`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userIdentifier })
+    });
+    return res.json();
+  },
+
+  async markAllNotificationsRead(userIdentifier, role, employeeId) {
+    const res = await fetch(`${API_BASE}/leaves/notifications/read-all`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userIdentifier, role, employeeId })
+    });
     return res.json();
   },
 

@@ -1,42 +1,177 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
-  ShieldCheck,
-  Briefcase,
-  User,
-  ChevronDown,
+  LayoutDashboard,
+  Users,
+  Gauge,
+  Lightbulb,
+  FileSpreadsheet,
+  GitBranch,
+  Calendar,
+  UserCheck,
+  Building2,
+  MessageSquare,
   RotateCcw,
   LogOut,
   Bell,
-  Trash2,
-  Users
+  ShieldCheck,
+  Briefcase,
+  User as UserIcon,
+  CheckCircle2
 } from 'lucide-react';
 import Avatar from './Avatar';
 
 export default function Navbar({
   currentUser,
-  onSwitchRole,
+  activeTab,
+  setActiveTab,
   onLogout,
   onOpenNotifications,
-  notificationsCount = 0,
-  onSeedDemoData,
-  onClearAllData,
-  isOperatingData
+  unreadNotificationsCount = 0,
+  onResetDemo,
+  isOperatingData = false,
+  pendingRegistrationsCount = 0,
+  onOpenRegistrationsModal,
+  counts = {}
 }) {
-  const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const isEmployee = currentUser?.role === 'Employee';
+  const isManager = currentUser?.role === 'Engineering Manager';
+  const isHR = currentUser?.role === 'HR Director' || !currentUser?.role;
 
-  const roles = [
-    { role: 'HR Director', label: 'HR Director (Priya Sharma)', icon: ShieldCheck, color: 'text-emerald-600' },
-    { role: 'Engineering Manager', label: 'Engineering Manager (Rajesh Verma)', icon: Briefcase, color: 'text-blue-600' },
-    { role: 'Employee', label: 'Employee Self-Service (Aarav Patel)', icon: User, color: 'text-orange-600' }
-  ];
+  // Role-based top navigation tabs
+  let navItems = [];
+
+  if (isEmployee) {
+    navItems = [
+      {
+        id: 'portal',
+        label: 'My Scorecard & Overview',
+        icon: UserCheck
+      },
+      {
+        id: 'feedbacks',
+        label: 'Feedbacks & Appraisals',
+        icon: MessageSquare
+      },
+      {
+        id: 'leaves',
+        label: 'Time Off & Leave Applications',
+        icon: Calendar,
+        badge: counts.pendingLeaves > 0 ? `${counts.pendingLeaves} Pending` : null
+      },
+      {
+        id: 'department-info',
+        label: 'Department Information',
+        icon: Building2
+      }
+    ];
+  } else if (isManager) {
+    navItems = [
+      {
+        id: 'dashboard',
+        label: 'Engineering Cockpit',
+        icon: LayoutDashboard
+      },
+      {
+        id: 'employees',
+        label: 'Team Directory',
+        icon: Users,
+        badge: counts.totalEmployees || null
+      },
+      {
+        id: 'organization',
+        label: 'Organization Tree',
+        icon: GitBranch
+      },
+      {
+        id: 'performance',
+        label: 'KPI Calibrator',
+        icon: Gauge
+      },
+      {
+        id: 'leaves',
+        label: 'Leave Approvals',
+        icon: Calendar,
+        badge: counts.pendingLeaves > 0 ? `${counts.pendingLeaves} Action` : null
+      }
+    ];
+  } else {
+    // HR Director
+    navItems = [
+      {
+        id: 'dashboard',
+        label: 'Workforce Cockpit',
+        icon: LayoutDashboard
+      },
+      {
+        id: 'employees',
+        label: 'Employee Directory',
+        icon: Users,
+        badge: counts.totalEmployees || null
+      },
+      {
+        id: 'organization',
+        label: 'Organization Tree',
+        icon: GitBranch
+      },
+      {
+        id: 'performance',
+        label: 'Real-Time KPI Simulator',
+        icon: Gauge
+      },
+      {
+        id: 'leaves',
+        label: 'Leave Management',
+        icon: Calendar,
+        badge: counts.pendingLeaves > 0 ? `${counts.pendingLeaves} Action` : null
+      },
+      {
+        id: 'insights',
+        label: 'Strategic Insights',
+        icon: Lightbulb,
+        badge: counts.totalInsights || null
+      },
+      {
+        id: 'reports',
+        label: 'Executive Reports',
+        icon: FileSpreadsheet
+      }
+    ];
+  }
+
+  const getRoleBadgeInfo = () => {
+    if (isEmployee) {
+      return {
+        icon: UserIcon,
+        color: 'text-orange-600 bg-orange-50 border-orange-200',
+        dot: 'bg-orange-500'
+      };
+    }
+    if (isManager) {
+      return {
+        icon: Briefcase,
+        color: 'text-blue-600 bg-blue-50 border-blue-200',
+        dot: 'bg-blue-500'
+      };
+    }
+    return {
+      icon: ShieldCheck,
+      color: 'text-emerald-700 bg-emerald-50 border-emerald-200',
+      dot: 'bg-emerald-500'
+    };
+  };
+
+  const roleBadge = getRoleBadgeInfo();
+  const RoleIcon = roleBadge.icon;
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-200/90 backdrop-blur-xl bg-white/90 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-200/90 backdrop-blur-xl bg-white/95 shadow-xs">
+      
+      {/* Upper Navigation Bar */}
+      <div className="w-full max-w-[98%] xl:max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         
-        {/* Brand & Logo */}
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-lg shadow-sm">
+        {/* Brand & Identity */}
+        <div className="flex items-center space-x-3 flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold flex items-center justify-center text-lg shadow-sm tracking-tight">
             HR
           </div>
           <div>
@@ -54,69 +189,58 @@ export default function Navbar({
           </div>
         </div>
 
-        {/* Center / Quick Actions */}
-        <div className="flex items-center space-x-3">
+        {/* Action Controls & User Identity */}
+        <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
           
-          {/* Notification Bell */}
+          {/* HR Pending Registration Approvals Badge */}
+          {isHR && pendingRegistrationsCount > 0 && (
+            <button
+              onClick={onOpenRegistrationsModal}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition-all shadow-xs cursor-pointer"
+              title="Review pending employee registration access requests"
+            >
+              <UserCheck className="w-3.5 h-3.5 text-purple-600" />
+              <span>{pendingRegistrationsCount} Pending Approvals</span>
+            </button>
+          )}
+
+          {/* Reset Demo Button (Placed next to notification icon) */}
+          <button
+            onClick={onResetDemo}
+            disabled={isOperatingData}
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold transition-all shadow-xs cursor-pointer disabled:opacity-60"
+            title="Reset dataset back to standard 15-employee Indian demo state"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 text-slate-600 ${isOperatingData ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Reset Demo</span>
+          </button>
+
+          {/* Notification Bell (Displays unread messages up to 3-day retention) */}
           <button
             onClick={onOpenNotifications}
             className="relative p-2 rounded-xl text-slate-600 hover:text-blue-600 hover:bg-slate-100 transition-colors cursor-pointer"
-            title="Workforce Notifications"
+            title="Workforce Notifications & Activity Log"
           >
             <Bell className="w-5 h-5" />
-            {notificationsCount > 0 && (
-              <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-orange-600 text-white text-[10px] font-bold flex items-center justify-center">
-                {notificationsCount}
+            {unreadNotificationsCount > 0 && (
+              <span className="absolute top-1 right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-orange-600 text-white text-[10px] font-bold flex items-center justify-center shadow-xs">
+                {unreadNotificationsCount}
               </span>
             )}
           </button>
 
-          {/* Role Switcher */}
-          <div className="relative">
-            <button
-              onClick={() => setRoleMenuOpen(!roleMenuOpen)}
-              className="flex items-center space-x-2 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs text-slate-800 transition-all cursor-pointer font-medium"
-            >
-              <ShieldCheck className="w-4 h-4 text-blue-600" />
-              <span className="hidden sm:inline text-slate-500">Active Role:</span>
-              <span className="font-bold text-slate-900">{currentUser?.role || 'HR Director'}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
-            </button>
-
-            {roleMenuOpen && (
-              <div className="absolute right-0 mt-2 w-72 glass-panel rounded-2xl shadow-xl border border-slate-200 py-1.5 z-50 bg-white animate-fade-in">
-                <div className="px-3.5 py-1.5 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">
-                  Switch Active Role (RBAC)
-                </div>
-                {roles.map(r => {
-                  const IconComponent = r.icon;
-                  const isCurrent = currentUser?.role === r.role;
-                  return (
-                    <button
-                      key={r.role}
-                      onClick={() => {
-                        onSwitchRole(r.role);
-                        setRoleMenuOpen(false);
-                      }}
-                      className={`w-full px-3.5 py-2.5 text-left text-xs flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer ${
-                        isCurrent ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700'
-                      }`}
-                    >
-                      <span className="flex items-center space-x-2.5">
-                        <IconComponent className={`w-4 h-4 ${r.color}`} />
-                        <span>{r.label}</span>
-                      </span>
-                      {isCurrent && (
-                        <span className="w-2 h-2 rounded-full bg-blue-600" />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
+          {/* Static Active Role Status Badge (No dropdown switcher; logout required to switch) */}
+          <div
+            className={`hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl border text-xs font-medium ${roleBadge.color}`}
+            title="Active role session. To access another role, sign out and authenticate."
+          >
+            <span className={`w-2 h-2 rounded-full ${roleBadge.dot}`} />
+            <RoleIcon className="w-3.5 h-3.5" />
+            <span className="font-bold text-slate-900">{currentUser?.role || 'HR Director'}</span>
+            <span className="text-[11px] text-slate-500 font-normal">Active</span>
           </div>
 
-          {/* User Profile Avatar & Sign Out */}
+          {/* Current User Identity & Sign Out Button */}
           <div className="flex items-center space-x-2 pl-2 border-l border-slate-200">
             <Avatar
               name={currentUser?.name || 'Priya Sharma'}
@@ -124,7 +248,7 @@ export default function Navbar({
               bg={currentUser?.avatarBg || '#16a34a'}
               size="md"
             />
-            <div className="hidden lg:block text-left">
+            <div className="hidden xl:block text-left">
               <div className="text-xs font-bold text-slate-900 leading-tight">
                 {currentUser?.name || 'Priya Sharma'}
               </div>
@@ -136,7 +260,7 @@ export default function Navbar({
             <button
               onClick={onLogout}
               className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors cursor-pointer ml-1"
-              title="Sign Out / Switch User"
+              title="Sign Out / Switch Active User"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -145,6 +269,42 @@ export default function Navbar({
         </div>
 
       </div>
+
+      {/* Lower Navigation Menu Bar (Sticky at top, does not scroll away) */}
+      <nav className="border-t border-slate-200/80 bg-white/95 px-4 sm:px-6 lg:px-8">
+        <div className="w-full max-w-[98%] xl:max-w-[1720px] mx-auto flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-2">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-transparent'
+                }`}
+              >
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
+                <span>{item.label}</span>
+                {item.badge && (
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1.5 ${
+                      isActive
+                        ? 'bg-white text-blue-600'
+                        : 'bg-orange-100 text-orange-700 border border-orange-200'
+                    }`}
+                  >
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
     </header>
   );
 }

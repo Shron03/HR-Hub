@@ -6,9 +6,10 @@ import {
   Lock,
   Mail,
   ArrowRight,
-  Building,
   UserPlus,
-  LogIn
+  LogIn,
+  CheckCircle2,
+  Clock
 } from 'lucide-react';
 import Avatar from './Avatar';
 import { api } from '../api/api';
@@ -22,6 +23,7 @@ export default function AuthModal({ onLoginSuccess }) {
   const [role, setRole] = useState('Employee');
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [successNotice, setSuccessNotice] = useState('');
 
   const demoAccounts = [
     {
@@ -57,6 +59,7 @@ export default function AuthModal({ onLoginSuccess }) {
     try {
       setLoading(true);
       setErrorMessage('');
+      setSuccessNotice('');
       const res = await api.demoLogin(demoRole);
       if (res.success && res.user) {
         onLoginSuccess(res.user);
@@ -73,12 +76,13 @@ export default function AuthModal({ onLoginSuccess }) {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage('');
+    setSuccessNotice('');
     setLoading(true);
 
     try {
       if (activeTab === 'login') {
         if (!email || !password) {
-          setErrorMessage('Please provide both email address and password');
+          setErrorMessage('Please provide both corporate email address and password');
           setLoading(false);
           return;
         }
@@ -86,7 +90,7 @@ export default function AuthModal({ onLoginSuccess }) {
         if (res.success && res.user) {
           onLoginSuccess(res.user);
         } else {
-          setErrorMessage(res.message || 'Invalid credentials');
+          setErrorMessage(res.message || 'Invalid credentials or account awaiting authorization.');
         }
       } else {
         if (!name || !email || !password) {
@@ -95,20 +99,25 @@ export default function AuthModal({ onLoginSuccess }) {
           return;
         }
         const res = await api.register({
-          name,
-          email,
+          name: name.trim(),
+          email: email.trim(),
           password,
           department,
           role
         });
-        if (res.success && res.user) {
-          onLoginSuccess(res.user);
+        if (res.success) {
+          setSuccessNotice(
+            res.message || 'Registration request submitted. Account is awaiting authorization by the HR Director before first login.'
+          );
+          setActiveTab('login');
+          setName('');
+          setPassword('');
         } else {
-          setErrorMessage(res.message || 'Registration failed');
+          setErrorMessage(res.message || 'Registration request failed.');
         }
       }
     } catch (err) {
-      setErrorMessage('Network error during authentication: ' + err.message);
+      setErrorMessage(err.message || 'Network error during authentication.');
     } finally {
       setLoading(false);
     }
@@ -182,7 +191,7 @@ export default function AuthModal({ onLoginSuccess }) {
         <div className="flex rounded-xl bg-slate-100 p-1 mb-4">
           <button
             type="button"
-            onClick={() => { setActiveTab('login'); setErrorMessage(''); }}
+            onClick={() => { setActiveTab('login'); setErrorMessage(''); setSuccessNotice(''); }}
             className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center space-x-1.5 ${
               activeTab === 'login'
                 ? 'bg-white text-slate-900 shadow-sm'
@@ -194,7 +203,7 @@ export default function AuthModal({ onLoginSuccess }) {
           </button>
           <button
             type="button"
-            onClick={() => { setActiveTab('register'); setErrorMessage(''); }}
+            onClick={() => { setActiveTab('register'); setErrorMessage(''); setSuccessNotice(''); }}
             className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer flex items-center justify-center space-x-1.5 ${
               activeTab === 'register'
                 ? 'bg-white text-slate-900 shadow-sm'
@@ -206,6 +215,15 @@ export default function AuthModal({ onLoginSuccess }) {
           </button>
         </div>
 
+        {/* Success Notice */}
+        {successNotice && (
+          <div className="p-3 mb-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-start space-x-2">
+            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+            <span>{successNotice}</span>
+          </div>
+        )}
+
+        {/* Error Notice */}
         {errorMessage && (
           <div className="p-3 mb-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
             {errorMessage}
@@ -308,7 +326,7 @@ export default function AuthModal({ onLoginSuccess }) {
             disabled={loading}
             className="w-full mt-2 py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs transition-all shadow-md flex items-center justify-center space-x-2 cursor-pointer disabled:opacity-60"
           >
-            <span>{loading ? 'Authenticating...' : activeTab === 'login' ? 'Enter Platform' : 'Complete Registration'}</span>
+            <span>{loading ? 'Authenticating...' : activeTab === 'login' ? 'Enter Platform' : 'Submit Registration Request'}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

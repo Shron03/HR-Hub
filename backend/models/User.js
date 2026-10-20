@@ -8,10 +8,16 @@ const UserSchema = new mongoose.Schema({
   role: {
     type: String,
     enum: ['HR Director', 'Engineering Manager', 'HR Specialist', 'Employee'],
-    default: 'HR Director'
+    default: 'Employee'
   },
-  department: { type: String, default: 'Human Resources' },
-  avatar: { type: String, default: '' }
+  department: { type: String, default: 'Engineering' },
+  avatar: { type: String, default: '' },
+  isApproved: { type: Boolean, default: true },
+  approvalStatus: {
+    type: String,
+    enum: ['Approved', 'Pending', 'Rejected'],
+    default: 'Approved'
+  }
 }, { timestamps: true });
 
 UserSchema.pre('save', async function (next) {

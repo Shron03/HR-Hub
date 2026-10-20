@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const TaskSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  project: { type: String, default: 'Internal Project' },
+  project: { type: String, default: 'Internal Deliverable' },
   deadline: { type: Date },
   status: {
     type: String,
@@ -26,7 +26,7 @@ const MonthlyHistorySchema = new mongoose.Schema({
 });
 
 const FeedbackSchema = new mongoose.Schema({
-  from: { type: String, default: 'HR Director' },
+  from: { type: String, default: 'Priya Sharma (HR Director)' },
   message: { type: String, required: true },
   category: {
     type: String,
@@ -90,14 +90,19 @@ const EmployeeSchema = new mongoose.Schema({
   joinDate: { type: Date, default: Date.now },
   status: {
     type: String,
-    enum: ['Active', 'On Leave', 'Probation', 'Terminated'],
+    enum: ['Active', 'On Leave', 'Probation', 'Notice Period', 'Terminated'],
     default: 'Active'
   },
   salary: { type: Number, default: 850000 }, // Annual CTC in INR
   location: { type: String, default: 'Bengaluru, India' },
+  workMode: {
+    type: String,
+    enum: ['On-site', 'Hybrid', 'Remote'],
+    default: 'Hybrid'
+  },
   managerName: { type: String, default: 'Executive Committee' },
   experienceYears: { type: Number, default: 3 },
-  
+
   // Real-time KPI Data based on Tasks Given/Completed and Review Score (0.0 to 10.0)
   kpiData: {
     tasksGiven: { type: Number, default: 20 },
@@ -146,17 +151,21 @@ EmployeeSchema.pre('save', function (next) {
   }
 
   // Calculate task completion rate and review percent from kpiData
-  const given = this.kpiData?.tasksGiven || 20;
-  const completed = this.kpiData?.tasksCompleted || 18;
+  const given = Math.max(1, this.kpiData?.tasksGiven || 20);
+  let completed = this.kpiData?.tasksCompleted !== undefined ? this.kpiData.tasksCompleted : 18;
+  if (completed > given) completed = given;
+  this.kpiData.tasksCompleted = completed;
+
   const review = this.kpiData?.reviewScore !== undefined ? this.kpiData.reviewScore : 8.5;
-  const att = this.kpiData?.attendanceRate || 92;
+  const att = this.kpiData?.attendanceRate !== undefined ? Math.max(0, Math.min(100, this.kpiData.attendanceRate)) : 92;
   const contrib = this.kpiData?.projectContribution || 85;
   const eff = this.kpiData?.workEfficiency || 86;
 
-  const taskRate = given > 0 ? Math.min(100, Math.round((completed / given) * 100)) : 100;
+  const taskRate = Math.min(100, Math.round((completed / given) * 100));
   const reviewPercent = Math.min(100, Math.round(review * 10)); // e.g. 8.5 -> 85%
 
   // Update metrics object
+  if (!this.metrics) this.metrics = {};
   this.metrics.attendanceRate = att;
   this.metrics.taskCompletionRate = taskRate;
   this.metrics.productivityScore = reviewPercent;

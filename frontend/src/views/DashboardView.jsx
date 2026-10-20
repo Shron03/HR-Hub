@@ -15,14 +15,11 @@ import {
 } from 'chart.js';
 import { Line, Bar, Doughnut, Radar } from 'react-chartjs-2';
 import {
-  TrendingUp,
-  Users,
   Award,
-  AlertTriangle,
   Clock,
   CheckCircle,
   Building2,
-  ChevronRight,
+  Users,
   ArrowUpRight,
   Sparkles
 } from 'lucide-react';
@@ -75,7 +72,7 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
         pointBackgroundColor: '#2563eb',
         pointBorderColor: '#ffffff',
         pointBorderWidth: 2,
-        pointRadius: 4
+        pointRadius: 3
       },
       {
         label: 'Productivity Score (%)',
@@ -87,10 +84,10 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
         pointBackgroundColor: '#ea580c',
         pointBorderColor: '#ffffff',
         pointBorderWidth: 2,
-        pointRadius: 4
+        pointRadius: 3
       },
       {
-        label: 'Overall KPI Score (%)',
+        label: 'Overall Performance Index (%)',
         data: trends.map(t => t.overallScore),
         borderColor: '#16a34a', // Green
         backgroundColor: 'transparent',
@@ -113,7 +110,7 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
         labels: {
           color: '#475569',
           font: { size: 11, family: 'Inter', weight: '600' },
-          boxWidth: 12,
+          boxWidth: 10,
           usePointStyle: true
         }
       },
@@ -121,20 +118,20 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
         backgroundColor: 'rgba(15, 23, 42, 0.95)',
         titleColor: '#ffffff',
         bodyColor: '#e2e8f0',
-        padding: 10,
-        cornerRadius: 8
+        padding: 8,
+        cornerRadius: 6
       }
     },
     scales: {
       x: {
-        grid: { color: 'rgba(226, 232, 240, 0.8)' },
-        ticks: { color: '#64748b', font: { size: 11 } }
+        grid: { color: 'rgba(226, 232, 240, 0.7)' },
+        ticks: { color: '#64748b', font: { size: 10 } }
       },
       y: {
         min: 60,
         max: 100,
-        grid: { color: 'rgba(226, 232, 240, 0.8)' },
-        ticks: { color: '#64748b', font: { size: 11 } }
+        grid: { color: 'rgba(226, 232, 240, 0.7)' },
+        ticks: { color: '#64748b', font: { size: 10 } }
       }
     }
   };
@@ -144,17 +141,17 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
     labels: depts.map(d => d.name),
     datasets: [
       {
-        label: 'Actual Avg Score',
+        label: 'Actual Departmental Avg',
         data: depts.map(d => d.avgScore),
-        backgroundColor: 'rgba(37, 99, 235, 0.2)',
+        backgroundColor: 'rgba(37, 99, 235, 0.18)',
         borderColor: '#2563eb',
         borderWidth: 2,
         pointBackgroundColor: '#2563eb'
       },
       {
-        label: 'Target KPI Score',
+        label: 'Target Baseline Index',
         data: depts.map(d => d.targetScore),
-        backgroundColor: 'rgba(234, 88, 12, 0.15)',
+        backgroundColor: 'rgba(234, 88, 12, 0.12)',
         borderColor: '#ea580c',
         borderWidth: 1.5,
         borderDash: [4, 4],
@@ -169,14 +166,14 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
     plugins: {
       legend: {
         position: 'top',
-        labels: { color: '#475569', font: { size: 11 }, boxWidth: 10 }
+        labels: { color: '#475569', font: { size: 10 }, boxWidth: 8 }
       }
     },
     scales: {
       r: {
-        angleLines: { color: 'rgba(226, 232, 240, 0.9)' },
-        grid: { color: 'rgba(226, 232, 240, 0.9)' },
-        pointLabels: { color: '#334155', font: { size: 11, weight: '600' } },
+        angleLines: { color: 'rgba(226, 232, 240, 0.8)' },
+        grid: { color: 'rgba(226, 232, 240, 0.8)' },
+        pointLabels: { color: '#334155', font: { size: 10, weight: '600' } },
         ticks: { backdropColor: 'transparent', color: '#64748b', stepSize: 10, min: 70, max: 100 }
       }
     }
@@ -184,7 +181,7 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
 
   // 3. Category Distribution Doughnut Chart
   const doughnutData = {
-    labels: ['Exceptional (>=92)', 'Strong (82-91)', 'Meets (70-81)', 'Needs Imp (60-69)', 'Critical (<60)'],
+    labels: ['Exceptional (Grade A+)', 'Strong Performer (Grade A)', 'Meets Expectations (Grade B)', 'Needs Improvement (Grade C)', 'Critical Attention (Grade D)'],
     datasets: [
       {
         data: [
@@ -203,7 +200,7 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
         ],
         borderColor: '#ffffff',
         borderWidth: 2,
-        hoverOffset: 6
+        hoverOffset: 4
       }
     ]
   };
@@ -214,76 +211,76 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
     plugins: {
       legend: {
         position: 'bottom',
-        labels: { color: '#475569', font: { size: 10, weight: '500' }, boxWidth: 8, padding: 12 }
+        labels: { color: '#475569', font: { size: 10, weight: '500' }, boxWidth: 8, padding: 8 }
       }
     },
-    cutout: '70%'
+    cutout: '72%'
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 animate-fade-in w-full">
       
       {/* Header Banner */}
-      <div className="glass-panel rounded-2xl p-6 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
-              Workforce Cockpit
+            <span className="px-2.5 py-0.5 text-[11px] font-bold rounded-full bg-blue-100 text-blue-800 border border-blue-200">
+              Executive Workforce Operations
             </span>
-            <span className="text-xs text-slate-500">Live Executive Metrics</span>
+            <span className="text-xs text-slate-500 font-medium">Real-Time Telemetry</span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight mt-1.5">
-            Executive Performance & Operations Cockpit
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight mt-1">
+            Workforce Performance & Operations Cockpit
           </h1>
-          <p className="text-xs text-slate-500 mt-1 max-w-2xl">
-            Real-time multi-department productivity indexes, attendance compliance trajectory, KPI distributions, and leadership rankings.
+          <p className="text-xs text-slate-500 mt-0.5 max-w-2xl">
+            Real-time cross-departmental productivity metrics, attendance compliance trajectory, KPI distributions, and leadership rankings.
           </p>
         </div>
 
-        <div className="flex items-center space-x-2.5">
+        <div className="flex items-center space-x-2">
           <button
             onClick={() => onNavigateTab('reports')}
-            className="btn-large bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer"
+            className="btn-large bg-blue-600 hover:bg-blue-700 text-white shadow-xs cursor-pointer py-2 px-4 text-xs font-semibold"
           >
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-3.5 h-3.5" />
             <span>Generate Executive Report</span>
           </button>
         </div>
       </div>
 
       {/* Top Metric Cards (KPI Grid) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <KpiCard
-          title="Avg Performance Score"
+          title="Average Composite KPI Index"
           value={stats.avgPerformanceScore}
           unit="/ 100"
           change={3.8}
           isPositive={true}
-          subtitle="Target Benchmark 85"
+          subtitle="Target Baseline Benchmark: 85.0"
           icon={Award}
           variant="cyan"
           onClick={() => onNavigateTab('performance')}
         />
         <KpiCard
-          title="Attendance Rate"
+          title="Attendance Compliance Ratio"
           value={`${stats.avgAttendanceRate}%`}
           change={1.4}
           isPositive={true}
-          subtitle="Compliance Target >= 90%"
+          subtitle="Target Standard: >= 90.0%"
           icon={Clock}
           variant="emerald"
         />
         <KpiCard
-          title="Task Completion Rate"
+          title="Sprint Deliverables Completion Index"
           value={`${stats.avgTaskCompletion}%`}
           change={2.1}
           isPositive={true}
-          subtitle="Sprint Velocity"
+          subtitle="Delivery Throughput Target"
           icon={CheckCircle}
           variant="violet"
         />
         <KpiCard
-          title="Total Workforce"
+          title="Active Enterprise Headcount"
           value={stats.totalHeadcount}
           subtitle={`${stats.topPerformersCount} Exceptional | ${stats.atRiskCount} At Risk`}
           icon={Users}
@@ -293,48 +290,48 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
       </div>
 
       {/* Main Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Attendance & Productivity Trends (2 cols) */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col">
-          <div className="flex items-center justify-between mb-4">
+        <div className="lg:col-span-2 glass-panel rounded-2xl p-4 border border-slate-200/90 bg-white/90 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="text-base font-semibold text-slate-900">
-                Monthly Performance & Attendance Trajectory
+              <h2 className="text-sm font-bold text-slate-900">
+                Attendance Compliance & Sprint Output Trajectory
               </h2>
-              <p className="text-xs text-slate-500">
-                6-month historical tracking of attendance compliance vs productivity output
+              <p className="text-[11px] text-slate-500">
+                6-month historical tracking of attendance compliance versus productivity deliverables
               </p>
             </div>
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600">
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg bg-slate-100 text-slate-600">
               Trailing 6 Months
             </span>
           </div>
 
-          <div className="h-64 w-full">
+          <div className="h-52 w-full">
             <Line data={trendChartData} options={lineOptions} />
           </div>
         </div>
 
         {/* Category Distribution Doughnut (1 col) */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col justify-between">
+        <div className="glass-panel rounded-2xl p-4 border border-slate-200/90 bg-white/90 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-base font-semibold text-slate-900">
-                Performance Tiers
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-sm font-bold text-slate-900">
+                Performance Tier Distribution
               </h2>
-              <span className="text-xs text-slate-400">Headcount</span>
+              <span className="text-[11px] text-slate-400 font-medium">Headcount</span>
             </div>
-            <p className="text-xs text-slate-500 mb-3">
-              Distribution of employees across evaluation bands
+            <p className="text-[11px] text-slate-500 mb-2">
+              Talent distribution across formal evaluation tiers
             </p>
 
-            <div className="h-56 relative flex items-center justify-center">
+            <div className="h-48 relative flex items-center justify-center">
               <Doughnut data={doughnutData} options={doughnutOptions} />
               <div className="absolute flex flex-col items-center justify-center pointer-events-none">
                 <span className="text-2xl font-bold font-mono text-slate-900">
                   {stats.totalHeadcount}
                 </span>
-                <span className="text-[10px] text-slate-400 uppercase font-semibold">
+                <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">
                   Personnel
                 </span>
               </div>
@@ -343,101 +340,40 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
         </div>
       </div>
 
-      {/* Secondary Row: Department Comparison & Top Performers */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Secondary Row: Top Performers (LEFT - 1 col) & Department Comparison (RIGHT - 2 cols) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         
-        {/* Department Comparison (2 cols) */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-sm">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-base font-semibold text-slate-900 flex items-center space-x-2">
-                <Building2 className="w-4 h-4 text-blue-600" />
-                <span>Departmental KPI Benchmarking</span>
-              </h2>
-              <p className="text-xs text-slate-500">
-                Evaluating departmental score variance against target baseline
-              </p>
-            </div>
-
-            <div className="flex rounded-lg bg-slate-100 p-0.5 border border-slate-200">
-              <button
-                onClick={() => setChartMode('radar')}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
-                  chartMode === 'radar' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Radar View
-              </button>
-              <button
-                onClick={() => setChartMode('bar')}
-                className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
-                  chartMode === 'bar' ? 'bg-white shadow-sm text-blue-600' : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                Bar Chart
-              </button>
-            </div>
-          </div>
-
-          <div className="h-64 w-full">
-            {chartMode === 'radar' ? (
-              <Radar data={radarData} options={radarOptions} />
-            ) : (
-              <Bar
-                data={{
-                  labels: depts.map(d => d.name),
-                  datasets: [
-                    {
-                      label: 'Actual Score',
-                      data: depts.map(d => d.avgScore),
-                      backgroundColor: '#2563eb',
-                      borderRadius: 6
-                    },
-                    {
-                      label: 'Target Score',
-                      data: depts.map(d => d.targetScore),
-                      backgroundColor: '#cbd5e1',
-                      borderRadius: 6
-                    }
-                  ]
-                }}
-                options={lineOptions}
-              />
-            )}
-          </div>
-        </div>
-
-        {/* Top Performers Leaderboard (1 col) */}
-        <div className="glass-panel rounded-2xl p-5 border border-slate-200/90 bg-white/90 shadow-sm flex flex-col justify-between">
+        {/* Top Performers Leaderboard (Shifted to LEFT - 1 col) */}
+        <div className="glass-panel rounded-2xl p-4 border border-slate-200/90 bg-white/90 shadow-xs flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-3">
               <div>
-                <h2 className="text-base font-semibold text-slate-900 flex items-center space-x-2">
+                <h2 className="text-sm font-bold text-slate-900 flex items-center space-x-1.5">
                   <Award className="w-4 h-4 text-orange-500" />
-                  <span>Top Performers Leaderboard</span>
+                  <span>Key Talent & Leadership Roster</span>
                 </h2>
-                <p className="text-xs text-slate-500">
-                  Highest aggregate KPI scores
+                <p className="text-[11px] text-slate-500">
+                  Top composite KPI achievement rankings
                 </p>
               </div>
               <button
                 onClick={() => onNavigateTab('employees')}
-                className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center space-x-1 cursor-pointer"
+                className="text-[11px] text-blue-600 hover:text-blue-800 font-semibold flex items-center space-x-1 cursor-pointer"
               >
-                <span>View All</span>
-                <ArrowUpRight className="w-3.5 h-3.5" />
+                <span>Directory</span>
+                <ArrowUpRight className="w-3 h-3" />
               </button>
             </div>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               {topPerformers.slice(0, 5).map((emp, index) => (
                 <div
                   key={emp.employeeId}
                   onClick={() => onSelectEmployee(emp.employeeId)}
-                  className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-slate-50/60 hover:bg-blue-50/50 hover:border-blue-300 transition-all cursor-pointer group"
+                  className="flex items-center justify-between p-2 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-blue-50/50 hover:border-blue-300 transition-all cursor-pointer group"
                 >
-                  <div className="flex items-center space-x-3 min-w-0">
-                    <div className="w-5 text-center font-mono font-bold text-xs text-slate-400 group-hover:text-blue-600">
+                  <div className="flex items-center space-x-2.5 min-w-0">
+                    <div className="w-4 text-center font-mono font-bold text-xs text-slate-400 group-hover:text-blue-600">
                       #{index + 1}
                     </div>
                     <Avatar
@@ -447,26 +383,87 @@ export default function DashboardView({ analyticsData, onSelectEmployee, onNavig
                       size="sm"
                     />
                     <div className="min-w-0">
-                      <div className="text-xs font-bold text-slate-900 group-hover:text-blue-600 truncate">
+                      <div className="text-xs font-bold text-slate-900 group-hover:text-blue-600 truncate leading-tight">
                         {emp.name}
                       </div>
-                      <div className="text-[11px] text-slate-500 truncate">
+                      <div className="text-[10px] text-slate-500 truncate mt-0.5">
                         {emp.role} • {emp.department}
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-right flex-shrink-0">
+                  <div className="text-right flex-shrink-0 ml-2">
                     <div className="text-xs font-bold font-mono text-emerald-600">
                       {emp.metrics?.overallScore}%
                     </div>
                     <div className="text-[10px] text-slate-400">
-                      Score
+                      KPI Index
                     </div>
                   </div>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* Department Comparison (Shifted to RIGHT - 2 cols) */}
+        <div className="lg:col-span-2 glass-panel rounded-2xl p-4 border border-slate-200/90 bg-white/90 shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <span>Departmental KPI Benchmarking</span>
+              </h2>
+              <p className="text-[11px] text-slate-500">
+                Evaluating departmental score variance against target baseline
+              </p>
+            </div>
+
+            <div className="flex rounded-lg bg-slate-100 p-0.5 border border-slate-200">
+              <button
+                onClick={() => setChartMode('radar')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                  chartMode === 'radar' ? 'bg-white shadow-xs text-blue-600' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Radar View
+              </button>
+              <button
+                onClick={() => setChartMode('bar')}
+                className={`px-2.5 py-1 text-xs font-semibold rounded-md transition-colors cursor-pointer ${
+                  chartMode === 'bar' ? 'bg-white shadow-xs text-blue-600' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                Bar Chart
+              </button>
+            </div>
+          </div>
+
+          <div className="h-52 w-full">
+            {chartMode === 'radar' ? (
+              <Radar data={radarData} options={radarOptions} />
+            ) : (
+              <Bar
+                data={{
+                  labels: depts.map(d => d.name),
+                  datasets: [
+                    {
+                      label: 'Actual Departmental Avg',
+                      data: depts.map(d => d.avgScore),
+                      backgroundColor: '#2563eb',
+                      borderRadius: 4
+                    },
+                    {
+                      label: 'Target Baseline Index',
+                      data: depts.map(d => d.targetScore),
+                      backgroundColor: '#cbd5e1',
+                      borderRadius: 4
+                    }
+                  ]
+                }}
+                options={lineOptions}
+              />
+            )}
           </div>
         </div>
 

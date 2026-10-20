@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, UserPlus, Edit3, Lock, ShieldCheck, IndianRupee } from 'lucide-react';
+import { X, UserPlus, Edit3, Lock, ShieldCheck, IndianRupee, Building, Briefcase } from 'lucide-react';
 
 export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEdit = null }) {
   const isEditing = Boolean(employeeToEdit);
@@ -12,6 +12,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
     location: 'Bengaluru, India',
     salary: 850000,
     status: 'Active',
+    workMode: 'Hybrid',
+    managerName: 'Executive Committee',
+    phone: '+91 98765 43210',
     notes: ''
   });
 
@@ -27,6 +30,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
         location: employeeToEdit.location || 'Bengaluru, India',
         salary: employeeToEdit.salary || 850000,
         status: employeeToEdit.status || 'Active',
+        workMode: employeeToEdit.workMode || 'Hybrid',
+        managerName: employeeToEdit.managerName || 'Executive Committee',
+        phone: employeeToEdit.phone || '+91 98765 43210',
         notes: employeeToEdit.notes || ''
       });
     } else {
@@ -38,6 +44,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
         location: 'Bengaluru, India',
         salary: 850000,
         status: 'Active',
+        workMode: 'Hybrid',
+        managerName: 'Executive Committee',
+        phone: '+91 98765 43210',
         notes: ''
       });
     }
@@ -46,18 +55,24 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
   if (!isOpen) return null;
 
   const departments = ['Engineering', 'Product', 'Marketing', 'Sales', 'Human Resources'];
-  const statuses = ['Active', 'On Leave', 'Probation', 'Terminated'];
+  const statuses = ['Active', 'On Leave', 'Probation', 'Notice Period', 'Terminated'];
+  const workModes = ['On-site', 'Hybrid', 'Remote'];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     try {
       if (isEditing) {
-        // HR is only authorized to update salary, status, and notes
-        // Personal details are preserved
+        // HR is authorized to update role, department, salary, status, location, managerName, workMode, phone, and notes
         await onSave({
+          role: formData.role.trim(),
+          department: formData.department,
           salary: Number(formData.salary),
           status: formData.status,
+          location: formData.location.trim(),
+          managerName: formData.managerName?.trim(),
+          workMode: formData.workMode,
+          phone: formData.phone?.trim(),
           notes: formData.notes
         }, employeeToEdit._id || employeeToEdit.employeeId);
       } else {
@@ -70,6 +85,9 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
           location: formData.location.trim(),
           salary: Number(formData.salary),
           status: formData.status,
+          workMode: formData.workMode,
+          managerName: formData.managerName?.trim(),
+          phone: formData.phone?.trim(),
           notes: formData.notes
         };
         await onSave(payload, null);
@@ -84,7 +102,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fade-in">
-      <div className="glass-panel w-full max-w-xl rounded-2xl border border-slate-200 bg-white/95 shadow-2xl p-6 overflow-hidden max-h-[92vh] flex flex-col text-slate-800">
+      <div className="glass-panel w-full max-w-2xl rounded-2xl border border-slate-200 bg-white/95 shadow-2xl p-6 overflow-hidden max-h-[92vh] flex flex-col text-slate-800">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-200">
@@ -94,12 +112,12 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
             </div>
             <div>
               <h2 className="text-base font-bold text-slate-900">
-                {isEditing ? `Calibrate Employee: ${employeeToEdit.name}` : 'Add New Employee Record'}
+                {isEditing ? `Calibrate Employee Profile: ${employeeToEdit.name}` : 'Add New Employee Record'}
               </h2>
               <p className="text-xs text-slate-500">
                 {isEditing
-                  ? 'Personal details are locked. Authorized for compensation CTC and employment status adjustments only.'
-                  : 'Enroll a new employee into the corporate directory.'}
+                  ? 'Role title, department assignment, compensation CTC, work mode, and operational status are editable by HR.'
+                  : 'Enroll a new employee record into the corporate directory.'}
               </p>
             </div>
           </div>
@@ -118,12 +136,12 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
             <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-800 text-xs flex items-center space-x-2">
               <ShieldCheck className="w-4 h-4 text-blue-600 flex-shrink-0" />
               <span>
-                <strong>HR Governance Rule:</strong> Employee personal identity details (Name, Email, Role, Department) cannot be modified here. Only salary CTC and employment status may be updated.
+                <strong>HR Governance Rule:</strong> Full Name and Corporate Email remain locked for audit integrity. Role title, department, compensation, status, and reporting lines can be updated below.
               </span>
             </div>
           )}
 
-          {/* Basic Info */}
+          {/* Personal Identity (Locked when editing) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-slate-700 font-semibold mb-1 flex items-center space-x-1">
@@ -165,21 +183,16 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
             </div>
           </div>
 
+          {/* Organization & Role (Editable by HR) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-slate-700 font-semibold mb-1 flex items-center space-x-1">
-                <span>Department</span>
-                {isEditing && <Lock className="w-3 h-3 text-slate-400" />}
+              <label className="block text-slate-700 font-semibold mb-1 text-blue-700">
+                Department Assignment *
               </label>
               <select
-                disabled={isEditing}
                 value={formData.department}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className={`w-full px-3 py-2 rounded-xl border text-xs ${
-                  isEditing
-                    ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
-                    : 'bg-white border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer'
-                }`}
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
               >
                 {departments.map(d => (
                   <option key={d} value={d}>{d}</option>
@@ -187,46 +200,66 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
               </select>
             </div>
             <div>
-              <label className="block text-slate-700 font-semibold mb-1 flex items-center space-x-1">
-                <span>Role Title</span>
-                {isEditing && <Lock className="w-3 h-3 text-slate-400" />}
+              <label className="block text-slate-700 font-semibold mb-1 text-blue-700">
+                Official Role Title *
               </label>
               <input
                 type="text"
                 required
-                disabled={isEditing}
                 placeholder="e.g. Lead Product Manager"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className={`w-full px-3 py-2 rounded-xl border text-xs ${
-                  isEditing
-                    ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
-                    : 'bg-white border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500'
-                }`}
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
           </div>
 
+          {/* Location, Work Mode & Reporting Manager */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-slate-700 font-semibold mb-1 flex items-center space-x-1">
-                <span>Base Location</span>
-                {isEditing && <Lock className="w-3 h-3 text-slate-400" />}
+              <label className="block text-slate-700 font-semibold mb-1">
+                Base Location
               </label>
               <input
                 type="text"
-                disabled={isEditing}
                 placeholder="Bengaluru, India"
                 value={formData.location}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className={`w-full px-3 py-2 rounded-xl border text-xs ${
-                  isEditing
-                    ? 'bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed'
-                    : 'bg-white border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500'
-                }`}
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
+            <div>
+              <label className="block text-slate-700 font-semibold mb-1">
+                Work Mode
+              </label>
+              <select
+                value={formData.workMode}
+                onChange={(e) => setFormData({ ...formData, workMode: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              >
+                {workModes.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-slate-700 font-semibold mb-1">
+                Reporting Manager
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Rajesh Verma"
+                value={formData.managerName}
+                onChange={(e) => setFormData({ ...formData, managerName: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Salary, Status & Phone */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-slate-700 font-semibold mb-1 text-blue-700">
                 Annual CTC (₹ INR) *
@@ -254,6 +287,19 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-slate-700 font-semibold mb-1">
+                Contact Phone
+              </label>
+              <input
+                type="text"
+                placeholder="+91 98765 43210"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
           </div>
 
@@ -284,7 +330,7 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
               disabled={saving}
               className="btn-large bg-blue-600 hover:bg-blue-700 text-white shadow-md cursor-pointer disabled:opacity-60"
             >
-              <span>{saving ? 'Saving...' : isEditing ? 'Update Compensation & Status' : 'Create Employee Record'}</span>
+              <span>{saving ? 'Saving...' : isEditing ? 'Save Employee Profile' : 'Create Employee Record'}</span>
             </button>
           </div>
         </form>

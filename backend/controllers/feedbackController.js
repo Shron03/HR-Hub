@@ -1,5 +1,6 @@
 import mongoose from 'mongoose';
 import Employee from '../models/Employee.js';
+import Notification from '../models/Notification.js';
 
 const findEmployee = async (id) => {
   if (mongoose.Types.ObjectId.isValid(id)) {
@@ -33,9 +34,19 @@ export const sendFeedback = async (req, res) => {
     employee.feedbacks.unshift(feedback);
     await employee.save();
 
+    // Create Notification specifically for the Employee
+    await Notification.create({
+      title: 'New Performance Feedback Note',
+      message: `${feedback.from} shared an official ${feedback.category} note: "${feedback.message}"`,
+      category: 'appraisal_feedback',
+      recipientRole: 'Employee',
+      recipientEmployeeId: employee.employeeId,
+      actionLink: 'feedbacks'
+    });
+
     res.status(201).json({
       success: true,
-      message: `Feedback message delivered to ${employee.name}`,
+      message: `Performance feedback delivered to ${employee.name}`,
       feedback: employee.feedbacks[0]
     });
   } catch (error) {
