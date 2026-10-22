@@ -1,0 +1,28 @@
+{
+  "name": "hr-hub-employee-performance-dashboard",
+  "version": "1.0.0",
+  "description": "HR Hub - Enterprise HR Analytics & Performance Management Platform",
+  "scripts": {
+    "build": "npm --prefix backend install && npm --prefix frontend install && npm --prefix frontend run build",
+    "start": "node backend/server.js",
+    "install:all": "npm --prefix backend install && npm --prefix frontend install",
+    "seed": "npm --prefix backend run seed",
+    "test:backend": "npm --prefix backend test",
+    "test:stage2": "node backend/test/stage2_db_tasks.test.js",
+    "test:stage3": "node backend/test/stage3_kpi_math.test.js",
+    "test:stage5": "node backend/test/stage5_integration.test.js",
+    "start:backend": "npm --prefix backend start",
+    "start:frontend": "npm --prefix frontend run dev"
+  },
+  "keywords": [
+    "hr-analytics",
+    "employee-performance",
+    "dashboard",
+    "react",
+    "nodejs",
+    "mongodb",
+    "chartjs"
+  ],
+  "author": "HR Hub Team",
+  "license": "MIT"
+}
