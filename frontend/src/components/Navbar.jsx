@@ -1,22 +1,25 @@
 import React from 'react';
 import {
-  LayoutDashboard,
   Users,
   Gauge,
-  Lightbulb,
-  FileSpreadsheet,
-  GitBranch,
   Calendar,
   UserCheck,
   Building2,
-  MessageSquare,
   RotateCcw,
   LogOut,
   Bell,
   ShieldCheck,
   Briefcase,
   User as UserIcon,
-  CheckCircle2
+  CheckCircle2,
+  FileText,
+  LifeBuoy,
+  UserPlus,
+  Clock,
+  LayoutDashboard,
+  CheckSquare,
+  FolderKanban,
+  Award
 } from 'lucide-react';
 import Avatar from './Avatar';
 
@@ -43,97 +46,99 @@ export default function Navbar({
   if (isEmployee) {
     navItems = [
       {
-        id: 'portal',
-        label: 'My Scorecard & Overview',
-        icon: UserCheck
-      },
-      {
-        id: 'feedbacks',
-        label: 'Feedbacks & Appraisals',
-        icon: MessageSquare
-      },
-      {
-        id: 'leaves',
-        label: 'Time Off & Leave Applications',
+        id: 'emp-attendance-leave',
+        label: 'Self Attendance & Leave',
         icon: Calendar,
-        badge: counts.pendingLeaves > 0 ? `${counts.pendingLeaves} Pending` : null
+        badge: counts.pendingLeaves > 0 ? `${counts.pendingLeaves} Active` : null
       },
       {
-        id: 'department-info',
-        label: 'Department Information',
-        icon: Building2
+        id: 'emp-time-tracking',
+        label: 'Time Tracking',
+        icon: Clock
+      },
+      {
+        id: 'emp-performance-appraisal',
+        label: 'Performance & Self-Appraisal',
+        icon: Award
+      },
+      {
+        id: 'emp-profile-payroll',
+        label: 'Profile & Payroll Documents',
+        icon: FileText
+      },
+      {
+        id: 'emp-hr-tickets',
+        label: 'HR Tickets',
+        icon: LifeBuoy,
+        badge: counts.openTickets > 0 ? `${counts.openTickets}` : null
       }
     ];
   } else if (isManager) {
     navItems = [
       {
-        id: 'dashboard',
-        label: 'Engineering Cockpit',
-        icon: LayoutDashboard
+        id: 'mgr-approvals',
+        label: 'Approval Center',
+        icon: CheckSquare,
+        badge: counts.pendingTimesheets > 0 ? `${counts.pendingTimesheets} Action` : null
       },
       {
-        id: 'employees',
-        label: 'Team Directory',
+        id: 'mgr-supervision',
+        label: 'Team Supervision',
         icon: Users,
         badge: counts.totalEmployees || null
       },
       {
-        id: 'organization',
-        label: 'Organization Tree',
-        icon: GitBranch
-      },
-      {
-        id: 'performance',
-        label: 'KPI Calibrator',
+        id: 'mgr-performance',
+        label: 'Performance & Goal Tracking',
         icon: Gauge
       },
       {
-        id: 'leaves',
-        label: 'Leave Approvals',
-        icon: Calendar,
-        badge: counts.pendingLeaves > 0 ? `${counts.pendingLeaves} Action` : null
+        id: 'mgr-projects',
+        label: 'Time Logs & Projects',
+        icon: FolderKanban
       }
     ];
   } else {
     // HR Director
     navItems = [
       {
-        id: 'dashboard',
-        label: 'Workforce Cockpit',
-        icon: LayoutDashboard
-      },
-      {
-        id: 'employees',
-        label: 'Employee Directory',
+        id: 'org-directory',
+        label: 'Organization & Employee Directory',
         icon: Users,
         badge: counts.totalEmployees || null
       },
       {
-        id: 'organization',
-        label: 'Organization Tree',
-        icon: GitBranch
+        id: 'onboarding-offboarding',
+        label: 'Onboarding & Offboarding (HR Process)',
+        icon: UserPlus,
+        badge: counts.activeCases > 0 ? `${counts.activeCases} Active` : null
       },
       {
-        id: 'performance',
-        label: 'Real-Time KPI Simulator',
-        icon: Gauge
-      },
-      {
-        id: 'leaves',
-        label: 'Leave Management',
-        icon: Calendar,
+        id: 'time-attendance',
+        label: 'Time & Attendance Administration',
+        icon: Clock,
         badge: counts.pendingLeaves > 0 ? `${counts.pendingLeaves} Action` : null
       },
       {
-        id: 'insights',
-        label: 'Strategic Insights',
-        icon: Lightbulb,
-        badge: counts.totalInsights || null
+        id: 'talent-management',
+        label: 'Talent Management & Appraisals',
+        icon: Gauge
       },
       {
-        id: 'reports',
-        label: 'Executive Reports',
-        icon: FileSpreadsheet
+        id: 'helpdesk',
+        label: 'HR Help Desk & Requests',
+        icon: LifeBuoy,
+        badge: counts.openTickets > 0 ? `${counts.openTickets} Open` : null
+      },
+      {
+        id: 'documents',
+        label: 'Files & Document Management',
+        icon: FileText
+      },
+      {
+        id: 'analytics-reports',
+        label: 'Analytics & Reports',
+        icon: LayoutDashboard
       }
     ];
   }
@@ -166,7 +171,7 @@ export default function Navbar({
   return (
     <header className="sticky top-0 z-40 w-full glass-panel border-b border-slate-200/90 backdrop-blur-xl bg-white/95 shadow-xs">
       
-      {/* Upper Navigation Bar */}
+      {/* Upper Navigation Utility Bar */}
       <div className="w-full max-w-[98%] xl:max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         
         {/* Brand & Identity */}
@@ -270,7 +275,7 @@ export default function Navbar({
 
       </div>
 
-      {/* Lower Navigation Menu Bar (Sticky at top, does not scroll away) */}
+      {/* Lower Horizontal Navigation Menu Bar (Sticky at top, does not scroll away) */}
       <nav className="border-t border-slate-200/80 bg-white/95 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-[98%] xl:max-w-[1720px] mx-auto flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-2">
           {navItems.map((item) => {

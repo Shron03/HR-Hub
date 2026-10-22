@@ -14,6 +14,10 @@ import insightRoutes from './routes/insightRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import leaveRoutes from './routes/leaveRoutes.js';
 import feedbackRoutes from './routes/feedbackRoutes.js';
+import ticketRoutes from './routes/ticketRoutes.js';
+import onboardingRoutes from './routes/onboardingRoutes.js';
+import documentRoutes from './routes/documentRoutes.js';
+import timeLogRoutes from './routes/timeLogRoutes.js';
 
 dotenv.config();
 
@@ -42,6 +46,10 @@ app.use('/api/insights', insightRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/tickets', ticketRoutes);
+app.use('/api/onboarding', onboardingRoutes);
+app.use('/api/documents', documentRoutes);
+app.use('/api/timelogs', timeLogRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

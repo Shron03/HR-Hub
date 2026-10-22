@@ -28,10 +28,9 @@ def create_hr_hub_presentation():
         bg = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0), Inches(0), prs.slide_width, prs.slide_height)
         bg.fill.solid()
         bg.fill.fore_color.rgb = BG_COLOR
-        bg.line.fill.background() # no line
+        bg.line.fill.background()
 
     def add_header(slide, tag_text, title_text, subtitle_text, page_number):
-        # Tag pill
         pill = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(0.4), Inches(3.2), Inches(0.32))
         pill.fill.solid()
         pill.fill.fore_color.rgb = ACCENT_LIGHT
@@ -47,7 +46,6 @@ def create_hr_hub_presentation():
         p_pill.font.color.rgb = ACCENT_TEXT
         p_pill.alignment = PP_ALIGN.CENTER
 
-        # Slide Title
         tb_title = slide.shapes.add_textbox(Inches(0.8), Inches(0.8), Inches(10.5), Inches(0.6))
         tf_title = tb_title.text_frame
         tf_title.word_wrap = True
@@ -57,7 +55,6 @@ def create_hr_hub_presentation():
         p_title.font.bold = True
         p_title.font.color.rgb = TEXT_MAIN
 
-        # Slide Subtitle
         tb_sub = slide.shapes.add_textbox(Inches(0.8), Inches(1.35), Inches(10.5), Inches(0.4))
         tf_sub = tb_sub.text_frame
         tf_sub.word_wrap = True
@@ -66,7 +63,6 @@ def create_hr_hub_presentation():
         p_sub.font.size = Pt(11.5)
         p_sub.font.color.rgb = TEXT_MUTED
 
-        # Page Number Indicator
         tb_num = slide.shapes.add_textbox(Inches(11.5), Inches(0.45), Inches(1.0), Inches(0.4))
         tf_num = tb_num.text_frame
         p_num = tf_num.paragraphs[0]
@@ -83,7 +79,6 @@ def create_hr_hub_presentation():
         card.line.color.rgb = CARD_BORDER
         card.line.width = Pt(1)
 
-        # Content Box inside the card
         tb = slide.shapes.add_textbox(left + Inches(0.2), top + Inches(0.2), width - Inches(0.4), height - Inches(0.4))
         tf = tb.text_frame
         tf.word_wrap = True
@@ -95,7 +90,7 @@ def create_hr_hub_presentation():
         if title:
             p_t = tf.paragraphs[0]
             p_t.text = title
-            p_t.font.size = Pt(13.5)
+            p_t.font.size = Pt(13)
             p_t.font.bold = True
             p_t.font.color.rgb = TEXT_MAIN
             p_t.space_after = Pt(2)
@@ -103,7 +98,7 @@ def create_hr_hub_presentation():
             if subtitle:
                 p_s = tf.add_paragraph()
                 p_s.text = subtitle
-                p_s.font.size = Pt(10)
+                p_s.font.size = Pt(9.5)
                 p_s.font.color.rgb = TEXT_MUTED
                 p_s.space_after = Pt(8)
             else:
@@ -131,11 +126,11 @@ def create_hr_hub_presentation():
     # Slide 1 - Card 1: Project Overview
     tf1 = create_card(slide1, Inches(0.8), top_pos, card_w3, card_h, "Project Overview & Vision", "Modernizing corporate HR operations")
     items1 = [
-        ("Core Vision:", " Engineered an interactive, full-stack enterprise platform consolidating workforce management, self-service portals, and operational telemetry."),
-        ("ZOHO People Alignment:", " Inspired by enterprise human resource management tools with role-specific views and modular self-service workflows."),
-        ("Desktop-Optimized Experience:", " Redesigned with a sticky top navigation header and wide responsive layout, maximizing screen efficiency without side margin waste."),
-        ("Real-Time KPI Calibration:", " Enables dynamic tracking of employee tasks, decimal performance reviews, and live composite score derivations."),
-        ("Standardized Roster:", " Pre-configured with a 15-member Indian workforce dataset, complete with reporting lines, compensation, and departmental structures.")
+        ("Direct Landing Experience:", " Direct entry into the executive HR Director panel on initial site visit without mandatory login roadblocks."),
+        ("Enterprise Architecture:", " Built to match Zoho People and Google Workspace standards with role-specific views and modular workflows."),
+        ("Widescreen Sticky Layout:", " Replaced sidebars with a sticky top navigation menu, maximizing horizontal desktop space."),
+        ("Real-Time KPI Calibration:", " Dynamic deliverable tracking, decimal performance ratings (0.0-10.0), and live composite score derivations."),
+        ("Indian Workforce Dataset:", " Pre-configured with a 15-member Indian corporate roster, reporting lines, compensation CTC, and departments.")
     ]
     for bold_prefix, text in items1:
         p = tf1.add_paragraph()
@@ -143,22 +138,22 @@ def create_hr_hub_presentation():
         r1 = p.add_run()
         r1.text = "• " + bold_prefix
         r1.font.bold = True
-        r1.font.size = Pt(10.5)
+        r1.font.size = Pt(10)
         r1.font.color.rgb = PRIMARY_BLUE
         r2 = p.add_run()
         r2.text = text
         r2.font.bold = False
-        r2.font.size = Pt(10)
+        r2.font.size = Pt(9.5)
         r2.font.color.rgb = TEXT_BODY
 
     # Slide 1 - Card 2: Problem Statement & Need
     tf2 = create_card(slide1, Inches(4.84), top_pos, card_w3, card_h, "Problem Statement & Need", "Challenges in traditional HR platforms")
     items2 = [
-        ("Fragmented Tooling:", " Legacy HR operations rely on disconnected spreadsheets and manual email approvals, causing operational latency and tracking errors."),
-        ("Rigid Role Boundaries:", " Off-the-shelf software often lacks granular Role-Based Access Control (RBAC), exposing sensitive structural data to employees."),
-        ("Opaque Evaluation Metrics:", " Performance grading is often calculated via hidden or static annual formulas rather than transparent, sprint-based deliverables."),
-        ("Cluttered User Interfaces:", " Many enterprise portals suffer from tall, scroll-heavy sidebars and wasted desktop margins, diminishing daily usability."),
-        ("Absence of Instant Recovery:", " Lack of standardized demonstration datasets and instant persistence resets complicates training and stakeholder evaluation.")
+        ("Fragmented Tooling:", " Legacy HR operations rely on disconnected spreadsheets and manual email approvals, causing operational latency."),
+        ("Rigid Role Boundaries:", " Off-the-shelf software often lacks granular Role-Based Access Control (RBAC), exposing sensitive hierarchy data."),
+        ("Opaque Evaluation Metrics:", " Performance grading is often calculated via hidden static annual formulas rather than transparent deliverables."),
+        ("Cluttered User Interfaces:", " Enterprise portals suffer from tall, scroll-heavy sidebars and wasted desktop margins, diminishing daily usability."),
+        ("Absence of Instant Recovery:", " Lack of standardized demonstration datasets and instant persistence resets complicates stakeholder evaluation.")
     ]
     for bold_prefix, text in items2:
         p = tf2.add_paragraph()
@@ -166,18 +161,18 @@ def create_hr_hub_presentation():
         r1 = p.add_run()
         r1.text = "• " + bold_prefix
         r1.font.bold = True
-        r1.font.size = Pt(10.5)
+        r1.font.size = Pt(10)
         r1.font.color.rgb = PRIMARY_BLUE
         r2 = p.add_run()
         r2.text = text
         r2.font.bold = False
-        r2.font.size = Pt(10)
+        r2.font.size = Pt(9.5)
         r2.font.color.rgb = TEXT_BODY
 
     # Slide 1 - Card 3: Core Architecture & Stack
     tf3 = create_card(slide1, Inches(8.88), top_pos, card_w3, card_h, "System Architecture & Stack", "Clean decoupled client-server model")
     items3 = [
-        ("Frontend Application:", " Built with React 18, Vite build tool, and Tailwind CSS for a modern, responsive user experience."),
+        ("Frontend Application:", " Built with React 18, Vite 8 build tool, and Tailwind CSS for a modern, responsive user experience."),
         ("Data Visualization:", " Integrated Chart.js and React-Chartjs-2 for radar charts, line trends, and distribution doughnuts."),
         ("Backend Server & API:", " Node.js runtime and Express.js REST API with modular controllers, routes, and middleware."),
         ("Database Engine:", " MongoDB with Mongoose ORM, featuring schema validation, relationships, and TTL auto-expiry indexes."),
@@ -190,12 +185,12 @@ def create_hr_hub_presentation():
         r1 = p.add_run()
         r1.text = "• " + bold_prefix
         r1.font.bold = True
-        r1.font.size = Pt(10.5)
+        r1.font.size = Pt(10)
         r1.font.color.rgb = PRIMARY_BLUE
         r2 = p.add_run()
         r2.text = text
         r2.font.bold = False
-        r2.font.size = Pt(10)
+        r2.font.size = Pt(9.5)
         r2.font.color.rgb = TEXT_BODY
 
 
@@ -208,7 +203,7 @@ def create_hr_hub_presentation():
         slide2,
         "Webpage Working & Features",
         "Operational Workflows & Core System Features",
-        "Comprehensive walkthrough of the platform modules, navigation flow, and functional capabilities",
+        "Modular architecture partitioned across HR Director, Engineering Manager, and Employee workspaces",
         2
     )
 
@@ -217,86 +212,89 @@ def create_hr_hub_presentation():
     row1_top = Inches(1.85)
     row2_top = Inches(4.5)
 
-    # Slide 2 - Box 1: Workflow & Access Gate
-    tf_w1 = create_card(slide2, Inches(0.8), row1_top, grid_w, grid_h, "Two-Phase Access & Sticky Navigation", "User registration and layout hierarchy")
+    # Slide 2 - Box 1: HR Executive Modules
+    tf_w1 = create_card(slide2, Inches(0.8), row1_top, grid_w, grid_h, "HR Director: Governance & Operations", "7 comprehensive management modules")
     w1_items = [
-        ("Registration Approval Gateway:", " New user sign-ups are flagged as Pending and cannot log in until verified and authorized by the HR Director."),
-        ("Sticky Top Navigation Bar:", " Horizontal menu fixed at the top of the viewport; stays locked during scroll and eliminates left-sidebar whitespace waste."),
-        ("Active Status Display:", " Instant dropdown role switching replaced with a static status indicator; users sign out and log in to change roles.")
+        ("Organization & Employee Directory:", " Unified personnel directory and 3-in-1 organizational reporting tree with granular profile editing."),
+        ("Onboarding & Offboarding (HR Process):", " Interactive checklist tracking for documentation, IT assets provisioning, and exit clearances."),
+        ("Time & Attendance Administration:", " Presence compliance monitor and leave authorization queue with start/end date constraints."),
+        ("Talent Management & Appraisals:", " Real-time KPI simulator, decimal reviews (0.0-10.0), 9-box talent matrix, and appraisal dispatch.")
     ]
     for bold_prefix, text in w1_items:
         p = tf_w1.add_paragraph()
-        p.space_after = Pt(3)
+        p.space_after = Pt(2.5)
         r1 = p.add_run()
         r1.text = "• " + bold_prefix
         r1.font.bold = True
-        r1.font.size = Pt(10)
+        r1.font.size = Pt(9.5)
         r1.font.color.rgb = PRIMARY_BLUE
         r2 = p.add_run()
         r2.text = text
-        r2.font.size = Pt(9.5)
+        r2.font.size = Pt(9)
         r2.font.color.rgb = TEXT_BODY
 
-    # Slide 2 - Box 2: Operations Cockpit & Directory
-    tf_w2 = create_card(slide2, Inches(6.84), row1_top, grid_w, grid_h, "Operations Cockpit & Employee Directory", "Executive oversight and personnel calibration")
+    # Slide 2 - Box 2: HR Services & Documents
+    tf_w2 = create_card(slide2, Inches(6.84), row1_top, grid_w, grid_h, "HR Director: Services & Intelligence", "Employee relations and executive telemetry")
     w2_items = [
-        ("Executive Workforce Cockpit:", " 6-month historical attendance compliance trajectory, radar department benchmarks, and KPI tier distribution."),
-        ("Shifted Leadership Roster:", " Top Performers Leaderboard positioned on the left column for immediate visibility."),
-        ("Expanded HR Field Calibration:", " HR can adjust Role Title, Department Assignment, Annual CTC (INR), Status, Location, Manager, and Work Mode.")
+        ("HR Help Desk & Requests:", " Triage employee support tickets (Payroll, Leave, IT, Policies) with tracked resolution notes."),
+        ("Files & Document Management:", " Enterprise repository for company policies, POSH handbooks, NDA templates, and tax declarations."),
+        ("Analytics & Reports:", " Executive operations cockpit, 6-month attendance trajectory, strategic insights, and CSV exports."),
+        ("Reset Demo Capability:", " Persistent database modifications with a 1-click Reset Demo button to restore standard data.")
     ]
     for bold_prefix, text in w2_items:
         p = tf_w2.add_paragraph()
-        p.space_after = Pt(3)
+        p.space_after = Pt(2.5)
         r1 = p.add_run()
         r1.text = "• " + bold_prefix
         r1.font.bold = True
-        r1.font.size = Pt(10)
+        r1.font.size = Pt(9.5)
         r1.font.color.rgb = PRIMARY_BLUE
         r2 = p.add_run()
         r2.text = text
-        r2.font.size = Pt(9.5)
+        r2.font.size = Pt(9)
         r2.font.color.rgb = TEXT_BODY
 
-    # Slide 2 - Box 3: KPI Simulator
-    tf_w3 = create_card(slide2, Inches(0.8), row2_top, grid_w, grid_h, "Real-Time KPI Simulator & Formula Abstraction", "Interactive performance modeling without formulas")
+    # Slide 2 - Box 3: Engineering Manager Modules
+    tf_w3 = create_card(slide2, Inches(0.8), row2_top, grid_w, grid_h, "Engineering Manager: Sprint Oversight", "4 dedicated managerial supervisory modules")
     w3_items = [
-        ("Real-Time Deliverable Sync:", " Adjusting Assigned Deliverables automatically syncs and clamps Completed Deliverables in real time."),
-        ("Full-Range Attendance:", " Attendance compliance slider supports values from 0% to 100% with immediate index recalculation."),
-        ("Managerial Decimal Reviews:", " Ratings on a 0.0 to 10.0 scale with 0.1 precision steps for nuanced quarterly evaluations."),
-        ("Clean Mathematical Abstraction:", " Raw formulas are completely hidden behind clean visual progress indicators and tier grades.")
+        ("Approval Center:", " Timesheet hour sign-offs and team leave review (monitoring presence while HR retains final approval authority)."),
+        ("Team Supervision:", " Dedicated engineering roster oversight, live presence monitoring (On-site, Hybrid, Remote), and task delegation."),
+        ("Performance & Goal Tracking:", " Team sprint velocity, overall team KPI benchmark, decimal review calibrator, and quarterly OKRs."),
+        ("Time Logs & Projects:", " Project deliverable boards, team hours burn-down, sprint completion rates, and blocker resolution.")
     ]
     for bold_prefix, text in w3_items:
         p = tf_w3.add_paragraph()
-        p.space_after = Pt(3)
+        p.space_after = Pt(2.5)
         r1 = p.add_run()
         r1.text = "• " + bold_prefix
         r1.font.bold = True
-        r1.font.size = Pt(10)
+        r1.font.size = Pt(9.5)
         r1.font.color.rgb = PRIMARY_BLUE
         r2 = p.add_run()
         r2.text = text
-        r2.font.size = Pt(9.5)
+        r2.font.size = Pt(9)
         r2.font.color.rgb = TEXT_BODY
 
-    # Slide 2 - Box 4: Leave & Employee Portal
-    tf_w4 = create_card(slide2, Inches(6.84), row2_top, grid_w, grid_h, "Leave Management & Employee Self-Service", "Time off governance and personalized views")
+    # Slide 2 - Box 4: Employee Self-Service Modules
+    tf_w4 = create_card(slide2, Inches(6.84), row2_top, grid_w, grid_h, "Employee Self-Service Portal", "5 specialized employee self-service modules")
     w4_items = [
-        ("Date Validation & Auto-Duration:", " Selecting leave dates auto-computes total days; end date enforces start-date boundary constraints."),
-        ("Strict HR Approval Authority:", " Only the HR Director can approve or decline leave; Engineering Managers are restricted to view-only access."),
-        ("Tailored Employee Views:", " Organization Tree hidden from employees; replaced with Past Feedbacks, Leaves, and Department Info."),
-        ("3-Day Auto-Expiring Notifications:", " Slide-out drawer displaying all unread messages with a 3-day retention lifecycle.")
+        ("Self Attendance & Leave:", " Live punch clock-in/out simulator, leave balances (CL, SL, PL), and time-off request submission."),
+        ("Time Tracking:", " Daily timesheet logger, logged hours history, and active sprint deliverables completion toggle."),
+        ("Performance & Self-Appraisal:", " Personal KPI scorecard, quarterly self-evaluation submitter, and official HR appraisals timeline."),
+        ("Profile & Payroll Documents:", " Digital employee badge, annual CTC breakdown (INR), and simulated monthly salary slip generator."),
+        ("HR Tickets:", " Raise confidential support inquiries to HR with live status badges (Open, In Progress, Resolved).")
     ]
     for bold_prefix, text in w4_items:
         p = tf_w4.add_paragraph()
-        p.space_after = Pt(3)
+        p.space_after = Pt(2.5)
         r1 = p.add_run()
         r1.text = "• " + bold_prefix
         r1.font.bold = True
-        r1.font.size = Pt(10)
+        r1.font.size = Pt(9.5)
         r1.font.color.rgb = PRIMARY_BLUE
         r2 = p.add_run()
         r2.text = text
-        r2.font.size = Pt(9.5)
+        r2.font.size = Pt(9)
         r2.font.color.rgb = TEXT_BODY
 
 
@@ -309,7 +307,7 @@ def create_hr_hub_presentation():
         slide3,
         "Implementation & Tooling",
         "Ideas Implemented, Engineering Innovations & Tools Used",
-        "Novel architectural concepts realized in code along with the complete engineering toolkit",
+        "Technical concepts realized in code along with the complete engineering toolkit",
         3
     )
 
@@ -319,50 +317,51 @@ def create_hr_hub_presentation():
     # Slide 3 - Left Column: Key Ideas Implemented
     tf_i1 = create_card(slide3, Inches(0.8), top_pos, card_w2, card_h2, "Key Ideas & Innovations Implemented", "Strategic concepts translated into platform features")
     ideas_items = [
-        ("Two-Phase Administrative Verification:", " Solved unverified account clutter by introducing a formal HR registration queue, preventing unapproved users from logging in until vetted."),
-        ("Widescreen Sticky Navigation Paradigm:", " Transformed the traditional cramped sidebar into a horizontal sticky top bar, reclaiming 15% horizontal screen real estate for wide analytics panels."),
-        ("Real-Time Numerical Input Synchronization:", " Implemented bidirectional dependency constraints between tasks assigned and tasks completed to eliminate invalid mathematical states."),
-        ("Contextual Role Privacy Partitioning:", " Prevented unauthorized hierarchy browsing by replacing the organizational chart with employee-specific appraisal history and department mission cards."),
-        ("Time-Bound TTL Notification Lifecycle:", " Combined MongoDB native TTL indexes (259,200 seconds) with API date filters to maintain a clean 3-day operational audit window."),
-        ("Zero-Formula Presentation Layer:", " Abstracted complex arithmetic calculations into executive visual indicators, ensuring the interface remains clean and accessible."),
-        ("On-Demand Demo State Reset:", " Integrated a persistent database model with a one-click Reset Demo button to restore standard Indian workforce records at any time.")
+        ("Direct First-Time Landing:", " Automatic initialization into the HR Director dashboard on initial load, bypassing login barriers."),
+        ("Two-Phase Administrative Verification:", " Formal HR registration queue preventing unapproved users from logging in until vetted."),
+        ("Widescreen Sticky Navigation Paradigm:", " Transformed the traditional cramped sidebar into a horizontal sticky top bar, reclaiming 15% screen space."),
+        ("Real-Time Deliverable Synchronization:", " Implemented bidirectional constraints between tasks assigned and tasks completed."),
+        ("Contextual Role Privacy Partitioning:", " Prevented unauthorized hierarchy browsing by replacing the org chart with personal self-service views."),
+        ("Time-Bound TTL Notification Lifecycle:", " Combined MongoDB native TTL indexes (259,200 seconds) with API date filters for a 3-day window."),
+        ("Zero-Formula Presentation Layer:", " Abstracted complex arithmetic calculations into executive visual indicators."),
+        ("End-to-End Database Persistence:", " Tickets, onboarding checklists, documents, and time logs persist across reloads.")
     ]
     for bold_prefix, text in ideas_items:
         p = tf_i1.add_paragraph()
-        p.space_after = Pt(4)
+        p.space_after = Pt(3.5)
         r1 = p.add_run()
         r1.text = "• " + bold_prefix
         r1.font.bold = True
-        r1.font.size = Pt(10)
+        r1.font.size = Pt(9.5)
         r1.font.color.rgb = PRIMARY_BLUE
         r2 = p.add_run()
         r2.text = text
-        r2.font.size = Pt(9.5)
+        r2.font.size = Pt(9)
         r2.font.color.rgb = TEXT_BODY
 
     # Slide 3 - Right Column: Tools & Technologies Used
     tf_i2 = create_card(slide3, Inches(6.84), top_pos, card_w2, card_h2, "Tools, Libraries & Technologies Used", "End-to-end modern web technology stack")
     tools_items = [
-        ("React 18 & Vite 8:", " Client-side component hierarchy, high-performance Virtual DOM updates, fast Hot Module Replacement, and optimized production chunking."),
-        ("Tailwind CSS:", " Modern utility-first CSS framework enabling clean layout management, responsive grids, and frosted glassmorphic card effects."),
-        ("Chart.js & React-Chartjs-2:", " Rendered HTML5 canvas charts including radar skill benchmarks, 6-month attendance trajectory lines, and doughnut tier breakdowns."),
-        ("Lucide React Icon Library:", " Over 25 clean, standardized enterprise icons providing visual clarity without using informal emojis."),
-        ("Node.js & Express.js:", " Asynchronous runtime and RESTful API framework handling authentication, employee records, KPI math, and leave workflows."),
+        ("React 18 & Vite 8:", " Client-side component hierarchy, high-performance Virtual DOM updates, and fast Hot Module Replacement."),
+        ("Tailwind CSS:", " Modern utility-first CSS framework enabling clean layout management and frosted glassmorphic card effects."),
+        ("Chart.js & React-Chartjs-2:", " Rendered HTML5 canvas charts including radar skill benchmarks, 6-month attendance lines, and doughnuts."),
+        ("Lucide React Icon Library:", " Over 30 standardized enterprise icons providing visual clarity without using informal emojis."),
+        ("Node.js & Express.js:", " Asynchronous runtime and RESTful API framework handling authentication, records, and workflows."),
         ("MongoDB & Mongoose ODM:", " Document database utilizing structured schemas, relational lookups, and TTL index auto-deletion."),
         ("JSON Web Tokens (JWT):", " Secure stateless authorization tokens verifying role claims across protected routes."),
-        ("Git & GitHub:", " Version control repository with point-by-point commit history ([github.com/Shron03/HR-Hub](https://github.com/Shron03/HR-Hub)).")
+        ("Git & GitHub:", " Version control repository maintaining point-by-point commit history ([github.com/Shron03/HR-Hub](https://github.com/Shron03/HR-Hub)).")
     ]
     for bold_prefix, text in tools_items:
         p = tf_i2.add_paragraph()
-        p.space_after = Pt(4)
+        p.space_after = Pt(3.5)
         r1 = p.add_run()
         r1.text = "• " + bold_prefix
         r1.font.bold = True
-        r1.font.size = Pt(10)
+        r1.font.size = Pt(9.5)
         r1.font.color.rgb = PRIMARY_BLUE
         r2 = p.add_run()
         r2.text = text
-        r2.font.size = Pt(9.5)
+        r2.font.size = Pt(9)
         r2.font.color.rgb = TEXT_BODY
 
 
@@ -382,12 +381,12 @@ def create_hr_hub_presentation():
     # Slide 4 - Left Column: Learning Outcomes
     tf_l1 = create_card(slide4, Inches(0.8), top_pos, card_w2, card_h2, "Key Project Learning Outcomes", "Skills and technical competencies acquired")
     outcomes_items = [
-        ("Full-Stack Enterprise Architecture:", " Mastered end-to-end coordination between client-side UI states, Express route controllers, and MongoDB document schemas."),
-        ("Role-Based Security & Authorization (RBAC):", " Implemented multi-tier user privilege separation across both frontend view routers and backend API endpoints."),
-        ("Responsive Layout & Viewport Optimization:", " Acquired deep knowledge in widescreen layout design, replacing vertical sidebars with sticky top headers for improved ergonomics."),
+        ("Full-Stack Enterprise Architecture:", " Mastered end-to-end coordination between client-side UI states, Express route controllers, and MongoDB schemas."),
+        ("Role-Based Security & Authorization (RBAC):", " Implemented multi-tier user privilege separation across both frontend views and backend API endpoints."),
+        ("Responsive Layout & Viewport Optimization:", " Acquired deep knowledge in widescreen layout design, replacing vertical sidebars with sticky top headers."),
         ("Real-Time KPI Calibration Systems:", " Developed interactive calculation engines synchronizing interdependent variables without performance lag."),
-        ("Automated Multi-Stage Test Engineering:", " Designed and executed 5 automated test suites covering boundary math, concurrency stress tests, and authorization gates."),
-        ("Enterprise UI/UX Design Standards:", " Learned to craft uncluttered, accessible user interfaces following professional corporate design principles and zero-emoji mandates.")
+        ("Automated Multi-Stage Test Engineering:", " Designed and executed 6 automated test suites covering boundary math, concurrency, and authorization gates."),
+        ("Enterprise UI/UX Design Standards:", " Crafted an uncluttered, accessible user interface following professional corporate design principles.")
     ]
     for bold_prefix, text in outcomes_items:
         p = tf_l1.add_paragraph()
@@ -431,7 +430,7 @@ def create_hr_hub_presentation():
     prs.save(output_path)
     print(f"[SUCCESS] Presentation generated successfully at: {output_path}")
 
-    # Also save a copy to root user directory for easy access
+    # Also save a copy to root user directory
     root_copy = r"C:\Users\Aethon\HR_Hub_Project_Presentation.pptx"
     prs.save(root_copy)
     print(f"[SUCCESS] Secondary copy saved at: {root_copy}")

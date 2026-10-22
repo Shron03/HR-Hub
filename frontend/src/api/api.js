@@ -195,6 +195,127 @@ export const api = {
     return res.json();
   },
 
+  // Help Desk & Support Tickets
+  async getTickets(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE}/tickets?${query}`);
+    return res.json();
+  },
+
+  async createTicket(ticketData) {
+    const res = await fetch(`${API_BASE}/tickets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ticketData)
+    });
+    return res.json();
+  },
+
+  async updateTicketStatus(id, status, resolutionNote, callerName) {
+    const res = await fetch(`${API_BASE}/tickets/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, resolutionNote, callerName })
+    });
+    return res.json();
+  },
+
+  async addTicketReply(id, replyData) {
+    const res = await fetch(`${API_BASE}/tickets/${id}/replies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(replyData)
+    });
+    return res.json();
+  },
+
+  // Onboarding & Offboarding Lifecycle
+  async getOnboardingCases(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE}/onboarding?${query}`);
+    return res.json();
+  },
+
+  async createOnboardingCase(caseData) {
+    const res = await fetch(`${API_BASE}/onboarding`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(caseData)
+    });
+    return res.json();
+  },
+
+  async toggleChecklistTask(caseId, taskId) {
+    const res = await fetch(`${API_BASE}/onboarding/${caseId}/tasks/${taskId}/toggle`, {
+      method: 'PATCH'
+    });
+    return res.json();
+  },
+
+  async updateCaseStatus(caseId, status, notes) {
+    const res = await fetch(`${API_BASE}/onboarding/${caseId}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status, notes })
+    });
+    return res.json();
+  },
+
+  // Corporate Documents Management
+  async getDocuments(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE}/documents?${query}`);
+    return res.json();
+  },
+
+  async createDocument(docData) {
+    const res = await fetch(`${API_BASE}/documents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(docData)
+    });
+    return res.json();
+  },
+
+  async deleteDocument(id) {
+    const res = await fetch(`${API_BASE}/documents/${id}`, {
+      method: 'DELETE'
+    });
+    return res.json();
+  },
+
+  async recordDocumentDownload(id) {
+    const res = await fetch(`${API_BASE}/documents/${id}/download`, {
+      method: 'POST'
+    });
+    return res.json();
+  },
+
+  // Time Logs & Projects
+  async getTimeLogs(params = {}) {
+    const query = new URLSearchParams(params).toString();
+    const res = await fetch(`${API_BASE}/timelogs?${query}`);
+    return res.json();
+  },
+
+  async createTimeLog(logData) {
+    const res = await fetch(`${API_BASE}/timelogs`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(logData)
+    });
+    return res.json();
+  },
+
+  async updateTimeLogStatus(id, status) {
+    const res = await fetch(`${API_BASE}/timelogs/${id}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    return res.json();
+  },
+
   // Demo Data Lifecycle (Zero-data state & 15-person Demo)
   async seedDemoData() {
     const res = await fetch(`${API_BASE}/employees/seed-demo`, {

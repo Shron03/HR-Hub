@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
-import DashboardView from './views/DashboardView';
-import EmployeesView from './views/EmployeesView';
+import OrgDirectoryView from './views/OrgDirectoryView';
+import OnboardingOffboardingView from './views/OnboardingOffboardingView';
+import TimeAttendanceAdminView from './views/TimeAttendanceAdminView';
 import PerformanceView from './views/PerformanceView';
-import OrganizationView from './views/OrganizationView';
-import LeaveManagementView from './views/LeaveManagementView';
-import EmployeePortalView from './views/EmployeePortalView';
-import EmployeeFeedbackHistoryView from './views/EmployeeFeedbackHistoryView';
-import DepartmentInfoView from './views/DepartmentInfoView';
-import InsightsView from './views/InsightsView';
-import ReportsView from './views/ReportsView';
+import HelpDeskView from './views/HelpDeskView';
+import DocumentsView from './views/DocumentsView';
+import AnalyticsReportsView from './views/AnalyticsReportsView';
+import ManagerApprovalsView from './views/ManagerApprovalsView';
+import ManagerSupervisionView from './views/ManagerSupervisionView';
+import ManagerProjectsView from './views/ManagerProjectsView';
+import EmployeeAttendanceLeaveView from './views/EmployeeAttendanceLeaveView';
+import EmployeeTimeTrackingView from './views/EmployeeTimeTrackingView';
+import EmployeeSelfAppraisalView from './views/EmployeeSelfAppraisalView';
+import EmployeeProfilePayrollView from './views/EmployeeProfilePayrollView';
+import EmployeeTicketsView from './views/EmployeeTicketsView';
 import AddEmployeeModal from './components/AddEmployeeModal';
 import EmployeeDetailModal from './components/EmployeeDetailModal';
 import RegistrationApprovalsModal from './components/RegistrationApprovalsModal';
@@ -19,14 +24,33 @@ import NotificationToast from './components/NotificationToast';
 import Toast from './components/Toast';
 import { api } from './api/api';
 
+const defaultHrUser = {
+  id: 'hr-director-default',
+  name: 'Priya Sharma',
+  role: 'HR Director',
+  department: 'Human Resources',
+  email: 'hr@hrhub.in',
+  initials: 'PS',
+  avatarBg: '#16a34a',
+  status: 'Active'
+};
+
 export default function App() {
-  // Authentication State
+  // Authentication State: Directly defaults to HR Director on first visit
   const [currentUser, setCurrentUser] = useState(() => {
     const saved = localStorage.getItem('hrhub_user');
-    return saved ? JSON.parse(saved) : null;
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {}
+    }
+    // First time opening: directly land on HR Panel!
+    localStorage.setItem('hrhub_user', JSON.stringify(defaultHrUser));
+    return defaultHrUser;
   });
 
   const isEmployee = currentUser?.role === 'Employee';
+  const isManager = currentUser?.role === 'Engineering Manager';
   const isHR = currentUser?.role === 'HR Director' || !currentUser?.role;
 
   const [activeTab, setActiveTab] = useState(() => {
@@ -34,10 +58,12 @@ export default function App() {
     if (savedUser) {
       try {
         const u = JSON.parse(savedUser);
-        return u.role === 'Employee' ? 'portal' : 'dashboard';
+        if (u.role === 'Employee') return 'emp-attendance-leave';
+        if (u.role === 'Engineering Manager') return 'mgr-approvals';
+        return 'org-directory';
       } catch (e) {}
     }
-    return 'dashboard';
+    return 'org-directory';
   });
 
   // Application Data
@@ -47,6 +73,9 @@ export default function App() {
   const [reportData, setReportData] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [pendingRegistrations, setPendingRegistrations] = useState([]);
+  const [openTicketsCount, setOpenTicketsCount] = useState(0);
+  const [activeCasesCount, setActiveCasesCount] = useState(0);
+  const [pendingTimesheetsCount, setPendingTimesheetsCount] = useState(0);
   const [showNotificationPopup, setShowNotificationPopup] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isOperatingData, setIsOperatingData] = useState(false);
@@ -83,7 +112,10 @@ export default function App() {
           role: currentUser?.role,
           employeeId: currentUser?.employeeId,
           userId: currentUser?.id
-        }).catch(() => ({ success: false }))
+        }).catch(() => ({ success: false })),
+        api.getTickets().catch(() => ({ success: false })),
+        api.getOnboardingCases().catch(() => ({ success: false })),
+        api.getTimeLogs({ status: 'Pending Approval' }).catch(() => ({ success: false }))
       ];
 
       if (currentUser?.role === 'HR Director') {
@@ -91,15 +123,33 @@ export default function App() {
       }
 
       const results = await Promise.all(promises);
-      const [analyticsRes, employeesRes, insightsRes, reportRes, notifRes, regRes] = results;
+      const [
+        analyticsRes,
+        employeesRes,
+        insightsRes,
+        reportRes,
+        notifRes,
+        ticketsRes,
+        casesRes,
+        timeLogsRes,
+        regRes
+      ] = results;
 
       if (analyticsRes?.success) setAnalyticsData(analyticsRes);
       if (employeesRes?.success) setEmployees(employeesRes.employees || []);
       if (insightsRes?.success) setInsightsData(insightsRes);
       if (reportRes?.success) setReportData(reportRes);
+      if (ticketsRes?.success) {
+        setOpenTicketsCount((ticketsRes.tickets || []).filter(t => t.status === 'Open' || t.status === 'In Progress').length);
+      }
+      if (casesRes?.success) {
+        setActiveCasesCount((casesRes.cases || []).filter(c => c.status !== 'Completed').length);
+      }
+      if (timeLogsRes?.success) {
+        setPendingTimesheetsCount((timeLogsRes.timeLogs || []).length);
+      }
       if (notifRes?.success && notifRes.notifications) {
         setNotifications(notifRes.notifications);
-        // Show 5-second popup on load for HR if unread items exist
         const unreadCount = notifRes.notifications.filter(n => !n.read).length;
         if (currentUser?.role === 'HR Director' && unreadCount > 0) {
           setShowNotificationPopup(true);
@@ -119,8 +169,10 @@ export default function App() {
   useEffect(() => {
     if (currentUser) {
       loadAllData();
-      if (currentUser.role === 'Employee' && activeTab === 'dashboard') {
-        setActiveTab('portal');
+      if (currentUser.role === 'Employee' && (activeTab === 'org-directory' || activeTab === 'dashboard')) {
+        setActiveTab('emp-attendance-leave');
+      } else if (currentUser.role === 'Engineering Manager' && (activeTab === 'org-directory' || activeTab === 'dashboard')) {
+        setActiveTab('mgr-approvals');
       }
     }
   }, [currentUser]);
@@ -130,21 +182,23 @@ export default function App() {
     setCurrentUser(user);
     localStorage.setItem('hrhub_user', JSON.stringify(user));
     if (user.role === 'Employee') {
-      setActiveTab('portal');
+      setActiveTab('emp-attendance-leave');
+    } else if (user.role === 'Engineering Manager') {
+      setActiveTab('mgr-approvals');
     } else {
-      setActiveTab('dashboard');
+      setActiveTab('org-directory');
     }
     showToast(`Authenticated as ${user.name} (${user.role})`, 'success');
   };
 
-  // Handle Logout (To switch roles, user signs out and logs in as another role)
+  // Handle Logout
   const handleLogout = () => {
     setCurrentUser(null);
     localStorage.removeItem('hrhub_user');
     showToast('Signed out successfully. Select or sign in with another account.', 'info');
   };
 
-  // Handle Demo Reset (Restores default 15 Indian employees)
+  // Handle Demo Reset
   const handleResetDemoData = async () => {
     try {
       setIsOperatingData(true);
@@ -209,7 +263,7 @@ export default function App() {
     }
   };
 
-  // Save (Create or Update) Employee
+  // Save Employee
   const handleSaveEmployee = async (empData, id) => {
     try {
       if (id) {
@@ -365,7 +419,7 @@ export default function App() {
         <div className="ambient-sphere-3" />
       </div>
 
-      {/* Authentication Gate */}
+      {/* Authentication Gate: Shows only when explicitly logged out */}
       {!currentUser ? (
         <AuthModal onLoginSuccess={handleLoginSuccess} />
       ) : (
@@ -374,7 +428,7 @@ export default function App() {
           {showNotificationPopup && (
             <NotificationToast
               notifications={notifications}
-              onViewLeaves={() => setActiveTab('leaves')}
+              onViewLeaves={() => setActiveTab('time-attendance')}
               onClose={() => setShowNotificationPopup(false)}
             />
           )}
@@ -393,8 +447,10 @@ export default function App() {
             onOpenRegistrationsModal={() => setIsRegistrationsModalOpen(true)}
             counts={{
               totalEmployees: employees.length,
-              totalInsights: (insightsData?.needingImprovement?.length || 0) + (insightsData?.highPerformers?.length || 0),
-              pendingLeaves: pendingLeavesCount
+              pendingLeaves: pendingLeavesCount,
+              openTickets: openTicketsCount,
+              activeCases: activeCasesCount,
+              pendingTimesheets: pendingTimesheetsCount
             }}
           />
 
@@ -427,19 +483,14 @@ export default function App() {
             <div className="w-full">
               
               {/* Dynamic View Router */}
-              
-              {/* 1. Dashboard View (HR & Manager only) */}
-              {activeTab === 'dashboard' && !isEmployee && (
-                <DashboardView
-                  analyticsData={analyticsData}
-                  onSelectEmployee={handleSelectEmployee}
-                  onNavigateTab={(tab) => setActiveTab(tab)}
-                />
-              )}
 
-              {/* 2. Employee Directory (HR & Manager only) */}
-              {activeTab === 'employees' && !isEmployee && (
-                <EmployeesView
+              {/* ========================================= */}
+              {/* HR DIRECTOR VIEWS                         */}
+              {/* ========================================= */}
+              
+              {/* 1. Organization & Employee Directory */}
+              {activeTab === 'org-directory' && isHR && (
+                <OrgDirectoryView
                   employees={employees}
                   loading={loading}
                   onSelectEmployee={handleSelectEmployee}
@@ -467,16 +518,23 @@ export default function App() {
                 />
               )}
 
-              {/* 3. Organization 3-in-1 Structure (HR & Manager only; Employees CANNOT see) */}
-              {activeTab === 'organization' && !isEmployee && (
-                <OrganizationView
+              {/* 2. Onboarding & Offboarding (HR Process) */}
+              {activeTab === 'onboarding-offboarding' && isHR && (
+                <OnboardingOffboardingView showToast={showToast} />
+              )}
+
+              {/* 3. Time & Attendance Administration */}
+              {activeTab === 'time-attendance' && isHR && (
+                <TimeAttendanceAdminView
+                  currentUser={currentUser}
                   employees={employees}
-                  onSelectEmployee={handleSelectEmployee}
+                  onRefreshData={loadAllData}
+                  showToast={showToast}
                 />
               )}
 
-              {/* 4. Real-Time KPI Simulator (HR & Manager only) */}
-              {activeTab === 'performance' && !isEmployee && (
+              {/* 4. Talent Management & Appraisals */}
+              {activeTab === 'talent-management' && isHR && (
                 <PerformanceView
                   employees={employees}
                   onUpdateEmployeeMetrics={handleUpdateEmployeeMetrics}
@@ -485,54 +543,119 @@ export default function App() {
                 />
               )}
 
-              {/* 5. Leave Management & Approvals (Accessible by all roles with role-tailored permissions) */}
-              {activeTab === 'leaves' && (
-                <LeaveManagementView
+              {/* 5. HR Help Desk & Requests */}
+              {activeTab === 'helpdesk' && isHR && (
+                <HelpDeskView
                   currentUser={currentUser}
+                  showToast={showToast}
+                />
+              )}
+
+              {/* 6. Files & Document Management */}
+              {activeTab === 'documents' && isHR && (
+                <DocumentsView
+                  currentUser={currentUser}
+                  showToast={showToast}
+                />
+              )}
+
+              {/* 7. Analytics & Reports */}
+              {activeTab === 'analytics-reports' && isHR && (
+                <AnalyticsReportsView
+                  analyticsData={analyticsData}
+                  insightsData={insightsData}
+                  reportData={reportData}
+                  employees={employees}
+                  onSelectEmployee={handleSelectEmployee}
+                  onExportCsv={handleExportCsv}
+                />
+              )}
+
+              {/* ========================================= */}
+              {/* ENGINEERING MANAGER VIEWS                 */}
+              {/* ========================================= */}
+
+              {/* 1. Approval Center */}
+              {activeTab === 'mgr-approvals' && isManager && (
+                <ManagerApprovalsView
+                  currentUser={currentUser}
+                  showToast={showToast}
+                />
+              )}
+
+              {/* 2. Team Supervision */}
+              {activeTab === 'mgr-supervision' && isManager && (
+                <ManagerSupervisionView
+                  employees={employees}
+                  onSelectEmployee={handleSelectEmployee}
+                  onAddTask={handleAddTask}
+                  showToast={showToast}
+                />
+              )}
+
+              {/* 3. Performance & Goal Tracking */}
+              {activeTab === 'mgr-performance' && isManager && (
+                <PerformanceView
+                  employees={employees.filter(e => e.department === 'Engineering')}
+                  onUpdateEmployeeMetrics={handleUpdateEmployeeMetrics}
+                  onSelectEmployee={handleSelectEmployee}
+                  showToast={showToast}
+                />
+              )}
+
+              {/* 4. Time Logs & Projects */}
+              {activeTab === 'mgr-projects' && isManager && (
+                <ManagerProjectsView showToast={showToast} />
+              )}
+
+              {/* ========================================= */}
+              {/* EMPLOYEE SELF-SERVICE VIEWS               */}
+              {/* ========================================= */}
+
+              {/* 1. Self Attendance & Leave */}
+              {activeTab === 'emp-attendance-leave' && isEmployee && (
+                <EmployeeAttendanceLeaveView
+                  currentUser={currentUser}
+                  employees={employees}
                   onRefreshData={loadAllData}
                   showToast={showToast}
                 />
               )}
 
-              {/* 6. Employee Self-Service Overview (For Employee role) */}
-              {activeTab === 'portal' && (
-                <EmployeePortalView
+              {/* 2. Time Tracking */}
+              {activeTab === 'emp-time-tracking' && isEmployee && (
+                <EmployeeTimeTrackingView
                   currentUser={currentUser}
                   employees={employees}
-                  onNavigateTab={(tab) => setActiveTab(tab)}
+                  onToggleTaskStatus={handleToggleTaskStatus}
+                  showToast={showToast}
                 />
               )}
 
-              {/* 7. Employee Past Feedbacks & Appraisal History (For Employee role) */}
-              {activeTab === 'feedbacks' && (
-                <EmployeeFeedbackHistoryView
-                  currentUser={currentUser}
-                  employeeRecord={employees.find(e => e.employeeId === (currentUser?.employeeId || 'EMP-1001')) || employees[0]}
-                />
-              )}
-
-              {/* 8. Employee Department Information (For Employee role) */}
-              {activeTab === 'department-info' && (
-                <DepartmentInfoView
+              {/* 3. Performance & Self-Appraisal */}
+              {activeTab === 'emp-performance-appraisal' && isEmployee && (
+                <EmployeeSelfAppraisalView
                   currentUser={currentUser}
                   employees={employees}
+                  showToast={showToast}
                 />
               )}
 
-              {/* 9. Strategic Insights (HR only) */}
-              {activeTab === 'insights' && !isEmployee && (
-                <InsightsView
-                  insightsData={insightsData}
-                  onSelectEmployee={handleSelectEmployee}
-                />
-              )}
-
-              {/* 10. Monthly Executive Reports (HR only) */}
-              {activeTab === 'reports' && !isEmployee && (
-                <ReportsView
-                  reportData={reportData}
+              {/* 4. Profile & Payroll Documents */}
+              {activeTab === 'emp-profile-payroll' && isEmployee && (
+                <EmployeeProfilePayrollView
+                  currentUser={currentUser}
                   employees={employees}
-                  onExportCsv={handleExportCsv}
+                  showToast={showToast}
+                />
+              )}
+
+              {/* 5. HR Tickets */}
+              {activeTab === 'emp-hr-tickets' && isEmployee && (
+                <EmployeeTicketsView
+                  currentUser={currentUser}
+                  employees={employees}
+                  showToast={showToast}
                 />
               )}
 
