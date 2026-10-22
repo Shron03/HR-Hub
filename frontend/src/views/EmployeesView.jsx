@@ -16,6 +16,7 @@ import {
   IndianRupee
 } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import { getWorkforcePresence } from '../utils/presenceUtils';
 
 export default function EmployeesView({
   employees = [],
@@ -250,6 +251,7 @@ export default function EmployeesView({
               <tbody className="divide-y divide-slate-100 text-xs">
                 {filteredEmployees.map((emp) => {
                   const kpi = emp.kpiData || {};
+                  const presence = getWorkforcePresence(emp);
                   return (
                     <tr
                       key={emp.employeeId}
@@ -290,12 +292,8 @@ export default function EmployeesView({
 
                       {/* Status */}
                       <td className="py-3.5 px-4">
-                        <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full ${
-                          emp.status === 'On Leave'
-                            ? 'bg-orange-100 text-orange-700 border border-orange-200'
-                            : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                        }`}>
-                          {emp.status}
+                        <span className={`px-2.5 py-1 text-[11px] font-bold rounded-full ${presence.badgeClass}`}>
+                          {presence.label}
                         </span>
                       </td>
 
@@ -364,6 +362,7 @@ export default function EmployeesView({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredEmployees.map((emp) => {
             const kpi = emp.kpiData || {};
+            const presence = getWorkforcePresence(emp);
             return (
               <div
                 key={emp.employeeId}
@@ -394,12 +393,8 @@ export default function EmployeesView({
                       </div>
                     </div>
 
-                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                      emp.status === 'On Leave'
-                        ? 'bg-orange-100 text-orange-700'
-                        : 'bg-emerald-100 text-emerald-700'
-                    }`}>
-                      {emp.status}
+                    <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${presence.badgeClass}`}>
+                      {presence.label}
                     </span>
                   </div>
 

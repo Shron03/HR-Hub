@@ -90,10 +90,35 @@ const EmployeeSchema = new mongoose.Schema({
   joinDate: { type: Date, default: Date.now },
   status: {
     type: String,
-    enum: ['Active', 'On Leave', 'Probation', 'Notice Period', 'Terminated'],
+    enum: ['Active', 'On Leave', 'Probation', 'Notice Period', 'Terminated', 'Absent'],
     default: 'Active'
   },
   salary: { type: Number, default: 850000 }, // Annual CTC in INR
+  compensation: {
+    baseSalary: { type: Number, default: 0 },
+    hra: { type: Number, default: 0 },
+    specialAllowance: { type: Number, default: 0 },
+    bonus: { type: Number, default: 0 },
+    bonusReason: { type: String, default: 'Performance KPI Incentive' },
+    pfDeduction: { type: Number, default: 0 },
+    professionalTax: { type: Number, default: 200 },
+    tdsDeduction: { type: Number, default: 0 },
+    lopDeduction: { type: Number, default: 0 },
+    customDeductions: { type: Number, default: 0 },
+    customDeductionReason: { type: String, default: '' },
+    netMonthlySalary: { type: Number, default: 0 },
+    paymentStatus: { type: String, default: 'Processed' },
+    lastRevisedDate: { type: Date, default: Date.now }
+  },
+  designationHistory: [{
+    previousRole: String,
+    newRole: String,
+    previousDepartment: String,
+    newDepartment: String,
+    reason: String,
+    effectiveDate: { type: Date, default: Date.now },
+    updatedBy: { type: String, default: 'Priya Sharma (HR Director)' }
+  }],
   location: { type: String, default: 'Bengaluru, India' },
   workMode: {
     type: String,

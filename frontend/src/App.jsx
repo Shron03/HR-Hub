@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from './components/Navbar';
 import OrgDirectoryView from './views/OrgDirectoryView';
+import SalaryCompensationAdminView from './views/SalaryCompensationAdminView';
 import OnboardingOffboardingView from './views/OnboardingOffboardingView';
 import TimeAttendanceAdminView from './views/TimeAttendanceAdminView';
 import PerformanceView from './views/PerformanceView';
@@ -509,6 +510,17 @@ export default function App() {
                     }
                   }}
                   isOperatingData={isOperatingData}
+                />
+              )}
+
+              {/* Compensation & Payroll Administration */}
+              {activeTab === 'salary-compensation' && isHR && (
+                <SalaryCompensationAdminView
+                  currentUser={currentUser}
+                  employees={employees}
+                  onUpdateEmployee={handleSaveEmployee}
+                  onRefreshData={loadAllData}
+                  showToast={showToast}
                 />
               )}
 

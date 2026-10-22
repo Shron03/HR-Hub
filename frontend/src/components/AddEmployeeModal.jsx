@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Edit3, Lock, ShieldCheck, IndianRupee, Building, Briefcase } from 'lucide-react';
+import EditDesignationModal from './EditDesignationModal';
 
 export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEdit = null }) {
   const isEditing = Boolean(employeeToEdit);
+  const [isDesignationModalOpen, setIsDesignationModalOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -183,36 +185,65 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
             </div>
           </div>
 
-          {/* Organization & Role (Editable by HR) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1 text-blue-700">
-                Department Assignment *
-              </label>
-              <select
-                value={formData.department}
-                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
-              >
-                {departments.map(d => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
+          {/* Organization & Role: Protected on edit, open on add */}
+          {isEditing ? (
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider flex items-center space-x-1.5">
+                  <Briefcase className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Designation & Department Assignment</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsDesignationModalOpen(true)}
+                  className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-semibold text-xs flex items-center space-x-1 cursor-pointer transition-colors"
+                >
+                  <Edit3 className="w-3 h-3" />
+                  <span>Edit Designation</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Department</span>
+                  <span className="font-semibold text-slate-900">{formData.department}</span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block text-[10px] uppercase font-semibold">Official Role Title</span>
+                  <span className="font-semibold text-slate-900">{formData.role}</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="block text-slate-700 font-semibold mb-1 text-blue-700">
-                Official Role Title *
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Lead Product Manager"
-                value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1 text-blue-700">
+                  Department Assignment *
+                </label>
+                <select
+                  value={formData.department}
+                  onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                >
+                  {departments.map(d => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-slate-700 font-semibold mb-1 text-blue-700">
+                  Official Role Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Lead Product Manager"
+                  value={formData.role}
+                  onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                  className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-slate-900 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Location, Work Mode & Reporting Manager */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -336,6 +367,37 @@ export default function AddEmployeeModal({ isOpen, onClose, onSave, employeeToEd
         </form>
 
       </div>
+
+      {isEditing && (
+        <EditDesignationModal
+          isOpen={isDesignationModalOpen}
+          onClose={() => setIsDesignationModalOpen(false)}
+          employee={{
+            ...employeeToEdit,
+            role: formData.role,
+            department: formData.department
+          }}
+          onSave={async (updateData) => {
+            setFormData(prev => ({
+              ...prev,
+              role: updateData.role,
+              department: updateData.department
+            }));
+            if (onSave) {
+              await onSave({
+                ...updateData,
+                salary: Number(formData.salary),
+                status: formData.status,
+                location: formData.location.trim(),
+                managerName: formData.managerName?.trim(),
+                workMode: formData.workMode,
+                phone: formData.phone?.trim(),
+                notes: formData.notes
+              }, employeeToEdit._id || employeeToEdit.employeeId);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

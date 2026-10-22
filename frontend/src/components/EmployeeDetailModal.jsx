@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { Radar } from 'react-chartjs-2';
 import Avatar from './Avatar';
+import EditDesignationModal from './EditDesignationModal';
+import { getWorkforcePresence } from '../utils/presenceUtils';
 
 export default function EmployeeDetailModal({
   isOpen,
@@ -31,10 +33,12 @@ export default function EmployeeDetailModal({
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskPriority, setNewTaskPriority] = useState('Medium');
   const [isAddingTask, setIsAddingTask] = useState(false);
+  const [isDesignationModalOpen, setIsDesignationModalOpen] = useState(false);
 
   if (!isOpen || !employee) return null;
 
   const { metrics = {}, kpiData = {} } = employee;
+  const presence = getWorkforcePresence(employee);
 
   // Radar Data for Employee's 5 Core KPIs
   const radarData = {
@@ -109,16 +113,22 @@ export default function EmployeeDetailModal({
                 <span className="px-2 py-0.5 text-[10px] font-mono rounded bg-slate-100 text-slate-700 border border-slate-200">
                   {employee.employeeId}
                 </span>
-                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                  employee.status === 'On Leave'
-                    ? 'bg-orange-100 text-orange-700 border border-orange-200'
-                    : 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                }`}>
-                  {employee.status || 'Active'}
+                <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${presence.badgeClass}`}>
+                  {presence.label}
                 </span>
               </div>
-              <div className="text-xs text-slate-600 font-medium mt-0.5">
-                {employee.role} • <span className="text-blue-600 font-semibold">{employee.department}</span>
+              <div className="flex items-center space-x-2 text-xs text-slate-600 font-medium mt-0.5">
+                <span>{employee.role} • <span className="text-blue-600 font-semibold">{employee.department}</span></span>
+                {onEdit && (
+                  <button
+                    type="button"
+                    onClick={() => setIsDesignationModalOpen(true)}
+                    className="px-2 py-0.5 rounded text-[10px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 cursor-pointer inline-flex items-center space-x-1"
+                  >
+                    <Edit3 className="w-2.5 h-2.5" />
+                    <span>Edit Designation</span>
+                  </button>
+                )}
               </div>
               <div className="flex items-center space-x-4 text-[11px] text-slate-500 mt-1">
                 <span className="flex items-center space-x-1">
@@ -371,6 +381,20 @@ export default function EmployeeDetailModal({
 
         </div>
       </div>
+
+      <EditDesignationModal
+        isOpen={isDesignationModalOpen}
+        onClose={() => setIsDesignationModalOpen(false)}
+        employee={employee}
+        onSave={async (updateData) => {
+          if (onEdit) {
+            await onEdit({
+              ...employee,
+              ...updateData
+            });
+          }
+        }}
+      />
     </div>
   );
 }

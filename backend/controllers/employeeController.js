@@ -12,6 +12,39 @@ const findEmployee = async (id) => {
   return await Employee.findOne({ employeeId: id });
 };
 
+export const evaluatePresence = (emp) => {
+  const todayStr = new Date().toISOString().split('T')[0];
+  let presenceStatus = `Active (${emp.workMode || 'Hybrid'})`;
+  let isAbsence = false;
+  let activeLeave = null;
+
+  if (Array.isArray(emp.leaveRequests)) {
+    activeLeave = emp.leaveRequests.find(lr => {
+      if (lr.status !== 'Approved') return false;
+      const start = lr.startDate ? lr.startDate.substring(0, 10) : '';
+      const end = lr.endDate ? lr.endDate.substring(0, 10) : '';
+      return start && end && start <= todayStr && todayStr <= end;
+    });
+
+    if (activeLeave) {
+      if (activeLeave.type === 'Work From Home') {
+        presenceStatus = 'Work From Home (Remote)';
+        isAbsence = false;
+      } else {
+        presenceStatus = `On Leave (${activeLeave.type})`;
+        isAbsence = true;
+      }
+    }
+  }
+
+  if (!activeLeave && (emp.status === 'Absent' || emp.metrics?.attendanceRate === 0)) {
+    presenceStatus = 'Absent';
+    isAbsence = true;
+  }
+
+  return { presenceStatus, isAbsence, activeLeave };
+};
+
 export const seedDemoEmployees = async (req, res) => {
   try {
     const result = await seedDatabase();
@@ -79,10 +112,22 @@ export const getEmployees = async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     const totalCount = await Employee.countDocuments(query);
-    const employees = await Employee.find(query)
+    const rawEmployees = await Employee.find(query)
       .sort(sortOptions)
       .skip(skip)
       .limit(limitNum);
+
+    const employees = rawEmployees.map(emp => {
+      const obj = emp.toObject();
+      const presence = evaluatePresence(emp);
+      obj.presenceStatus = presence.presenceStatus;
+      if (presence.isAbsence && presence.activeLeave) {
+        obj.status = 'On Leave';
+      } else if (presence.isAbsence && presence.presenceStatus === 'Absent') {
+        obj.status = 'Absent';
+      }
+      return obj;
+    });
 
     res.json({
       success: true,
@@ -261,6 +306,18 @@ export const updateEmployee = async (req, res) => {
         ...employee.metrics.toObject(),
         ...req.body.metrics
       };
+    }
+    if (req.body.compensation) {
+      employee.compensation = {
+        ...(employee.compensation ? employee.compensation.toObject() : {}),
+        ...req.body.compensation
+      };
+    }
+    if (req.body.designationChange) {
+      if (!Array.isArray(employee.designationHistory)) {
+        employee.designationHistory = [];
+      }
+      employee.designationHistory.unshift(req.body.designationChange);
     }
 
     await employee.save();

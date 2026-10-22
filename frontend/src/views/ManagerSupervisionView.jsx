@@ -13,6 +13,7 @@ import {
   Laptop
 } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import { getWorkforcePresence } from '../utils/presenceUtils';
 
 export default function ManagerSupervisionView({ employees = [], onSelectEmployee, onAddTask, showToast }) {
   const [search, setSearch] = useState('');
@@ -34,8 +35,9 @@ export default function ManagerSupervisionView({ employees = [], onSelectEmploye
   });
 
   const totalMembers = engineeringStaff.length;
-  const activeToday = engineeringStaff.filter(e => e.status !== 'On Leave').length;
-  const onLeaveCount = engineeringStaff.filter(e => e.status === 'On Leave').length;
+  const presenceStaff = engineeringStaff.map(e => ({ emp: e, presence: getWorkforcePresence(e) }));
+  const activeToday = presenceStaff.filter(p => p.presence.status === 'Active' || p.presence.status === 'Probation').length;
+  const onLeaveCount = presenceStaff.filter(p => p.presence.status === 'On Leave' || p.presence.status === 'Absent').length;
 
   return (
     <div className="space-y-4 animate-fade-in w-full text-slate-800">
@@ -128,6 +130,7 @@ export default function ManagerSupervisionView({ employees = [], onSelectEmploye
           const tasks = emp.tasks || [];
           const completedTasks = tasks.filter(t => t.status === 'Completed').length;
           const kpi = emp.kpiData || {};
+          const presence = getWorkforcePresence(emp);
 
           return (
             <div
@@ -146,12 +149,8 @@ export default function ManagerSupervisionView({ employees = [], onSelectEmploye
                     </div>
                   </div>
 
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                    emp.status === 'On Leave'
-                      ? 'bg-orange-100 text-orange-700'
-                      : 'bg-emerald-100 text-emerald-700'
-                  }`}>
-                    {emp.status}
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${presence.badgeClass}`}>
+                    {presence.label}
                   </span>
                 </div>
 

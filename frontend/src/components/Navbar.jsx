@@ -19,7 +19,8 @@ import {
   LayoutDashboard,
   CheckSquare,
   FolderKanban,
-  Award
+  Award,
+  IndianRupee
 } from 'lucide-react';
 import Avatar from './Avatar';
 
@@ -106,6 +107,11 @@ export default function Navbar({
         label: 'Organization & Employee Directory',
         icon: Users,
         badge: counts.totalEmployees || null
+      },
+      {
+        id: 'salary-compensation',
+        label: 'Compensation & Payroll Administration',
+        icon: IndianRupee
       },
       {
         id: 'onboarding-offboarding',

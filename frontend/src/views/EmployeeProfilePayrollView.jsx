@@ -15,20 +15,29 @@ import {
   Printer
 } from 'lucide-react';
 import Avatar from '../components/Avatar';
+import { getWorkforcePresence } from '../utils/presenceUtils';
 
 export default function EmployeeProfilePayrollView({ currentUser, employees = [], showToast }) {
   const empId = currentUser?.employeeId || 'EMP-1001';
   const employee = employees.find(e => e.employeeId === empId) || employees[0] || {};
+  const presence = getWorkforcePresence(employee);
 
+  const comp = employee.compensation || {};
   const annualCtc = employee.salary || 850000;
-  const monthlyGross = Math.round(annualCtc / 12);
-  const basicSalary = Math.round(monthlyGross * 0.50);
-  const hra = Math.round(monthlyGross * 0.20);
-  const specialAllowance = Math.round(monthlyGross * 0.30);
-  const pfDeduction = Math.round(basicSalary * 0.12);
-  const professionalTax = 200;
-  const totalDeductions = pfDeduction + professionalTax;
-  const netMonthlyPay = monthlyGross - totalDeductions;
+  const monthlyGrossBase = Math.round(annualCtc / 12);
+  const basicSalary = comp.basicSalary || Math.round(monthlyGrossBase * 0.50);
+  const hra = comp.hra || Math.round(monthlyGrossBase * 0.20);
+  const specialAllowance = comp.specialAllowance || (monthlyGrossBase - basicSalary - hra);
+  const bonus = comp.bonus || 0;
+  const monthlyGross = basicSalary + hra + specialAllowance + bonus;
+
+  const pfDeduction = comp.pfDeduction || Math.round(basicSalary * 0.12);
+  const professionalTax = comp.professionalTax || 200;
+  const tdsDeduction = comp.tdsDeduction || 0;
+  const lopDeduction = comp.lopDeduction || 0;
+  const customDeductions = comp.customDeductions || 0;
+  const totalDeductions = pfDeduction + professionalTax + tdsDeduction + lopDeduction + customDeductions;
+  const netMonthlyPay = comp.netMonthlySalary || (monthlyGross - totalDeductions);
 
   const [selectedMonth, setSelectedMonth] = useState('October 2026');
 
@@ -137,9 +146,9 @@ export default function EmployeeProfilePayrollView({ currentUser, employees = []
           </div>
 
           <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-[11px] text-slate-400">Employment Status:</span>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
-              {employee.status || 'Active'}
+            <span className="text-[11px] text-slate-400">Workforce Presence:</span>
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${presence.badgeClass}`}>
+              {presence.label}
             </span>
           </div>
         </div>
@@ -241,6 +250,12 @@ export default function EmployeeProfilePayrollView({ currentUser, employees = []
                       <span className="text-slate-600">Special Allowance:</span>
                       <span className="font-mono text-slate-800">₹ {specialAllowance.toLocaleString('en-IN')}</span>
                     </div>
+                    {bonus > 0 && (
+                      <div className="flex justify-between text-emerald-700 font-semibold">
+                        <span>Performance Bonus:</span>
+                        <span className="font-mono">+ ₹ {bonus.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between pt-1 border-t border-slate-200 font-bold text-slate-900">
                       <span>Gross Earnings:</span>
                       <span className="font-mono">₹ {monthlyGross.toLocaleString('en-IN')}</span>
@@ -261,10 +276,18 @@ export default function EmployeeProfilePayrollView({ currentUser, employees = []
                       <span className="text-slate-600">Professional Tax (PT):</span>
                       <span className="font-mono text-slate-800">₹ {professionalTax.toLocaleString('en-IN')}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Income Tax (TDS):</span>
-                      <span className="font-mono text-slate-800">₹ 0</span>
-                    </div>
+                    {tdsDeduction > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-slate-600">Income Tax (TDS):</span>
+                        <span className="font-mono text-slate-800">₹ {tdsDeduction.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+                    {lopDeduction > 0 && (
+                      <div className="flex justify-between text-red-600 font-semibold">
+                        <span>Loss of Pay (LOP):</span>
+                        <span className="font-mono">- ₹ {lopDeduction.toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between pt-1 border-t border-slate-200 font-bold text-red-700">
                       <span>Total Deductions:</span>
                       <span className="font-mono">₹ {totalDeductions.toLocaleString('en-IN')}</span>

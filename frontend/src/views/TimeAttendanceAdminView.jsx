@@ -12,6 +12,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import LeaveManagementView from './LeaveManagementView';
+import { getWorkforcePresence } from '../utils/presenceUtils';
 
 export default function TimeAttendanceAdminView({
   currentUser,
@@ -22,8 +23,9 @@ export default function TimeAttendanceAdminView({
   const [subTab, setSubTab] = useState('leaves'); // 'leaves' or 'presence'
 
   const totalEmployees = employees.length;
-  const onLeaveCount = employees.filter(e => e.status === 'On Leave').length;
-  const activeCount = employees.filter(e => e.status !== 'On Leave').length;
+  const presenceList = employees.map(e => ({ emp: e, presence: getWorkforcePresence(e) }));
+  const onLeaveCount = presenceList.filter(p => p.presence.status === 'On Leave' || p.presence.status === 'Absent').length;
+  const activeCount = presenceList.filter(p => p.presence.status === 'Active' || p.presence.status === 'Probation').length;
   const avgAttendance = employees.length > 0
     ? Math.round(employees.reduce((acc, curr) => acc + (curr.metrics?.attendanceRate || 90), 0) / employees.length)
     : 92;
@@ -113,39 +115,36 @@ export default function TimeAttendanceAdminView({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {employees.map(emp => (
-                  <tr key={emp.employeeId} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="py-2.5 px-3">
-                      <div className="font-bold text-slate-900">{emp.name}</div>
-                      <div className="text-[10px] font-mono text-slate-400">{emp.employeeId}</div>
-                    </td>
-                    <td className="py-2.5 px-3 font-medium text-slate-700">{emp.department}</td>
-                    <td className="py-2.5 px-3 text-slate-600">{emp.role}</td>
-                    <td className="py-2.5 px-3 text-slate-600">{emp.workMode || 'Hybrid'}</td>
-                    <td className="py-2.5 px-3">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-mono font-bold text-blue-600">{emp.metrics?.attendanceRate}%</span>
-                        <div className="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className="h-full rounded-full bg-blue-600"
-                            style={{ width: `${emp.metrics?.attendanceRate || 90}%` }}
-                          />
+                {employees.map(emp => {
+                  const presence = getWorkforcePresence(emp);
+                  return (
+                    <tr key={emp.employeeId} className="hover:bg-slate-50/60 transition-colors">
+                      <td className="py-2.5 px-3">
+                        <div className="font-bold text-slate-900">{emp.name}</div>
+                        <div className="text-[10px] font-mono text-slate-400">{emp.employeeId}</div>
+                      </td>
+                      <td className="py-2.5 px-3 font-medium text-slate-700">{emp.department}</td>
+                      <td className="py-2.5 px-3 text-slate-600">{emp.role}</td>
+                      <td className="py-2.5 px-3 text-slate-600">{emp.workMode || 'Hybrid'}</td>
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-mono font-bold text-blue-600">{emp.metrics?.attendanceRate}%</span>
+                          <div className="w-16 h-1.5 rounded-full bg-slate-100 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-blue-600"
+                              style={{ width: `${emp.metrics?.attendanceRate || 90}%` }}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-3">
-                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${
-                        emp.status === 'On Leave'
-                          ? 'bg-orange-100 text-orange-700'
-                          : emp.status === 'Probation'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-emerald-100 text-emerald-700'
-                      }`}>
-                        {emp.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${presence.badgeClass}`}>
+                          {presence.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
