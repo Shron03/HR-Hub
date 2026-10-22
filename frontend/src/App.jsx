@@ -24,29 +24,22 @@ import NotificationToast from './components/NotificationToast';
 import Toast from './components/Toast';
 import { api } from './api/api';
 
-const defaultHrUser = {
-  id: 'hr-director-default',
-  name: 'Priya Sharma',
-  role: 'HR Director',
-  department: 'Human Resources',
-  email: 'hr@hrhub.in',
-  initials: 'PS',
-  avatarBg: '#16a34a',
-  status: 'Active'
-};
-
 export default function App() {
-  // Authentication State: Directly defaults to HR Director on first visit
+  // Authentication State: Requires explicit login or demo selection on visit
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('hrhub_user');
+    // Proactively clean up legacy auto-login localStorage so first visit always shows login
+    try {
+      localStorage.removeItem('hrhub_user');
+    } catch (e) {}
+
+    // Check sessionStorage only if authenticated during active tab session
+    const saved = sessionStorage.getItem('hrhub_user');
     if (saved) {
       try {
         return JSON.parse(saved);
       } catch (e) {}
     }
-    // First time opening: directly land on HR Panel!
-    localStorage.setItem('hrhub_user', JSON.stringify(defaultHrUser));
-    return defaultHrUser;
+    return null;
   });
 
   const isEmployee = currentUser?.role === 'Employee';
@@ -54,7 +47,7 @@ export default function App() {
   const isHR = currentUser?.role === 'HR Director' || !currentUser?.role;
 
   const [activeTab, setActiveTab] = useState(() => {
-    const savedUser = localStorage.getItem('hrhub_user');
+    const savedUser = sessionStorage.getItem('hrhub_user');
     if (savedUser) {
       try {
         const u = JSON.parse(savedUser);
@@ -180,7 +173,7 @@ export default function App() {
   // Handle Login Success
   const handleLoginSuccess = (user) => {
     setCurrentUser(user);
-    localStorage.setItem('hrhub_user', JSON.stringify(user));
+    sessionStorage.setItem('hrhub_user', JSON.stringify(user));
     if (user.role === 'Employee') {
       setActiveTab('emp-attendance-leave');
     } else if (user.role === 'Engineering Manager') {
@@ -194,6 +187,7 @@ export default function App() {
   // Handle Logout
   const handleLogout = () => {
     setCurrentUser(null);
+    sessionStorage.removeItem('hrhub_user');
     localStorage.removeItem('hrhub_user');
     showToast('Signed out successfully. Select or sign in with another account.', 'info');
   };

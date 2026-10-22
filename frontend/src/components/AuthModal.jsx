@@ -140,53 +140,6 @@ export default function AuthModal({ onLoginSuccess }) {
           </p>
         </div>
 
-        {/* 1-Click Quick Demo Access */}
-        <div className="mb-6">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
-            <span>Select Demo Role to Enter</span>
-            <span className="text-[11px] text-blue-600 font-medium">1-Click Sign In</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            {demoAccounts.map(demo => (
-              <button
-                key={demo.role}
-                type="button"
-                disabled={loading}
-                onClick={() => handleDemoSelect(demo.role)}
-                className="p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group flex flex-col justify-between"
-              >
-                <div className="flex items-center space-x-2.5 mb-2">
-                  <Avatar name={demo.name} initials={demo.initials} bg={demo.bg} size="sm" />
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700 leading-tight">
-                      {demo.name}
-                    </div>
-                    <div className="text-[11px] text-slate-500 leading-tight">
-                      {demo.role}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-[10px] text-slate-500 line-clamp-2">
-                  {demo.dept}
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="relative my-5">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-slate-200" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white px-3 text-slate-400 font-medium">
-              Or sign in with corporate credentials
-            </span>
-          </div>
-        </div>
-
         {/* Tab Switcher: Login vs Sign Up */}
         <div className="flex rounded-xl bg-slate-100 p-1 mb-4">
           <button
@@ -231,7 +184,7 @@ export default function AuthModal({ onLoginSuccess }) {
         )}
 
         {/* Credentials Form */}
-        <form onSubmit={handleFormSubmit} className="space-y-3.5">
+        <form onSubmit={handleFormSubmit} className="space-y-3.5 mb-6">
           {activeTab === 'register' && (
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1">
@@ -330,6 +283,53 @@ export default function AuthModal({ onLoginSuccess }) {
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>
+
+        {/* Divider */}
+        <div className="relative my-5">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-slate-200" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-white px-3 text-slate-400 font-medium">
+              Or quick enter with a demo role
+            </span>
+          </div>
+        </div>
+
+        {/* 1-Click Quick Demo Access */}
+        <div>
+          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 flex items-center justify-between">
+            <span>Select Demo Role to Enter</span>
+            <span className="text-[11px] text-blue-600 font-medium">1-Click Sign In</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            {demoAccounts.map(demo => (
+              <button
+                key={demo.role}
+                type="button"
+                disabled={loading}
+                onClick={() => handleDemoSelect(demo.role)}
+                className="p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left cursor-pointer group flex flex-col justify-between"
+              >
+                <div className="flex items-center space-x-2.5 mb-2">
+                  <Avatar name={demo.name} initials={demo.initials} bg={demo.bg} size="sm" />
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 group-hover:text-blue-700 leading-tight">
+                      {demo.name}
+                    </div>
+                    <div className="text-[11px] text-slate-500 leading-tight">
+                      {demo.role}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-[10px] text-slate-500 line-clamp-2">
+                  {demo.dept}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
 
       </div>
     </div>
