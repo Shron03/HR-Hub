@@ -7,3 +7,7 @@ backend/.env
 .DS_Store
 Thumbs.db
 *.log
+*.pptx
+*.pdf
+HR_Hub_Project_Presentation.pptx
+Human Resources Capstone Project.pdf
