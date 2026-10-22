@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import Employee from './models/Employee.js';
 import { seedDatabase } from './seed.js';
@@ -61,22 +64,49 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.get('/', (req, res) => {
-  res.json({
-    message: 'Welcome to HR Hub API',
-    version: '1.0.0',
-    endpoints: [
-      '/api/auth',
-      '/api/employees',
-      '/api/performance',
-      '/api/analytics',
-      '/api/insights',
-      '/api/reports',
-      '/api/leaves',
-      '/api/feedback'
-    ]
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const frontendDistPath = path.resolve(__dirname, '../frontend/dist');
+
+if (fs.existsSync(frontendDistPath)) {
+  console.log(`[STATIC] Serving production frontend build from: ${frontendDistPath}`);
+  app.use(express.static(frontendDistPath));
+
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({
+        success: false,
+        message: `API endpoint not found: ${req.method} ${req.originalUrl}`
+      });
+    }
+    if (req.path === '/health') {
+      return next();
+    }
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
   });
-});
+} else {
+  app.get('/', (req, res) => {
+    res.json({
+      message: 'Welcome to HR Hub API',
+      version: '1.0.0',
+      status: 'active',
+      endpoints: [
+        '/api/auth',
+        '/api/employees',
+        '/api/performance',
+        '/api/analytics',
+        '/api/insights',
+        '/api/reports',
+        '/api/leaves',
+        '/api/feedback',
+        '/api/tickets',
+        '/api/onboarding',
+        '/api/documents',
+        '/api/timelogs'
+      ]
+    });
+  });
+}
 
 // Centralized Error Handling Middleware
 app.use((err, req, res, next) => {
@@ -101,9 +131,10 @@ const startServer = async () => {
       console.log(`Database already populated with ${count} employee records.`);
     }
 
-    const server = app.listen(PORT, () => {
-      console.log(`HR Hub Backend Server running on port ${PORT}`);
-      console.log(`Health Check: http://localhost:${PORT}/health`);
+    const HOST = process.env.HOST || '0.0.0.0';
+    const server = app.listen(PORT, HOST, () => {
+      console.log(`HR Hub Backend Server running on http://${HOST}:${PORT}`);
+      console.log(`Health Check: http://${HOST}:${PORT}/health`);
     });
 
     return server;
