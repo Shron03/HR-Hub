@@ -36,20 +36,49 @@ app.use((req, res, next) => {
   next();
 });
 
-// Configurable CORS Allowlist
+// Configurable CORS Allowlist with automatic support for Render, Vercel, and local dev
 const rawClientUrl = process.env.CLIENT_URL || '';
-const allowedOrigins = rawClientUrl
+const configuredOrigins = rawClientUrl
   ? rawClientUrl.split(',').map(s => s.trim().replace(/\/$/, ''))
-  : ['http://localhost:5173', 'http://localhost:5000', 'http://localhost:3000', 'http://127.0.0.1:5173'];
+  : [];
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // Allow same-origin or non-browser requests
+
+  // Local development origins
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+    return true;
+  }
+
+  // Render cloud deployments (*.onrender.com)
+  if (/^https:\/\/.*\.onrender\.com$/.test(origin)) {
+    return true;
+  }
+
+  // Vercel cloud deployments (*.vercel.app)
+  if (/^https:\/\/.*\.vercel\.app$/.test(origin)) {
+    return true;
+  }
+
+  // Explicitly configured origins from CLIENT_URL
+  if (configuredOrigins.includes(origin) || configuredOrigins.includes('*')) {
+    return true;
+  }
+
+  // If CLIENT_URL is not explicitly configured, permit demo access
+  if (configuredOrigins.length === 0) {
+    return true;
+  }
+
+  return false;
+};
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow non-browser requests (Postman, curl, internal server calls)
-    if (!origin) return callback(null, true);
-    if (process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
-    return callback(new Error('Cross-Origin Request Blocked by CORS allowlist'));
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
