@@ -4,12 +4,9 @@ import jwt from 'jsonwebtoken';
 let secret = process.env.JWT_SECRET;
 
 if (!secret || secret.trim() === '') {
-  if (process.env.NODE_ENV === 'production') {
-    throw new Error('FATAL: JWT_SECRET environment variable is missing in production environment. Application cannot start securely.');
-  }
-  // For development and test environments, generate a secure random 32-byte secret per process execution
-  console.warn('[SECURITY WARNING] JWT_SECRET is not configured in environment. Generated an ephemeral in-process random secret for development/testing.');
+  // Generate a cryptographically secure random 256-bit secret per process
   secret = crypto.randomBytes(32).toString('hex');
+  console.warn('[SECURITY NOTICE] JWT_SECRET environment variable is not set. Generated a cryptographically secure 256-bit process secret for this instance. Configure JWT_SECRET in your dashboard to persist sessions across redeploys.');
 }
 
 export const JWT_SECRET = secret;

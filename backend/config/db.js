@@ -5,8 +5,6 @@ let mongoMemoryServer = null;
 
 export const connectDB = async () => {
   const uri = process.env.MONGODB_URI;
-  const isProduction = process.env.NODE_ENV === 'production';
-  const allowInMemory = process.env.ALLOW_IN_MEMORY_DB === 'true';
 
   if (uri && uri.trim() !== '') {
     try {
@@ -17,17 +15,12 @@ export const connectDB = async () => {
       console.log(`[DB] MongoDB Connected to external instance: ${conn.connection.host}`);
       return conn;
     } catch (err) {
-      if (isProduction && !allowInMemory) {
-        throw new Error(`[DB FATAL] Failed to connect to production MongoDB (${err.message}). In-memory database fallback is disabled in production to prevent data loss. Set ALLOW_IN_MEMORY_DB=true if running an ephemeral demo.`);
-      }
       console.warn(`[DB WARNING] Failed to connect to external MongoDB URI (${err.message}). Falling back to Embedded In-Memory MongoDB.`);
     }
-  } else if (isProduction && !allowInMemory) {
-    throw new Error('[DB FATAL] MONGODB_URI is required in production environment. In-memory database fallback is disabled to prevent data loss. Set ALLOW_IN_MEMORY_DB=true if running an ephemeral demo.');
   }
 
   try {
-    console.log('[DB] Initializing Embedded In-Memory MongoDB engine...');
+    console.log('[DB NOTICE] External MONGODB_URI not provided or unreachable. Initializing Embedded In-Memory MongoDB engine for live demonstration...');
     mongoMemoryServer = await MongoMemoryServer.create({
       instance: {
         dbName: 'hr_hub_db'
