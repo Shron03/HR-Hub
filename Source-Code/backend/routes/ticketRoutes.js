@@ -5,13 +5,14 @@ import {
   updateTicketStatus,
   addTicketReply
 } from '../controllers/ticketController.js';
+import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', getTickets);
-router.post('/', createTicket);
-router.patch('/:id/status', updateTicketStatus);
-router.put('/:id/status', updateTicketStatus);
-router.post('/:id/replies', addTicketReply);
+router.get('/', authenticateToken, getTickets);
+router.post('/', authenticateToken, createTicket);
+router.patch('/:id/status', authenticateToken, authorizeRoles('HR Director', 'Engineering Manager'), updateTicketStatus);
+router.put('/:id/status', authenticateToken, authorizeRoles('HR Director', 'Engineering Manager'), updateTicketStatus);
+router.post('/:id/replies', authenticateToken, addTicketReply);
 
 export default router;

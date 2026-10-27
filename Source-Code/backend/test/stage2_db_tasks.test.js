@@ -1,8 +1,21 @@
 // Verification Check 2: Database Persistence & Task Management
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = process.env.TEST_URL || 'http://localhost:5000';
 
 async function testDatabaseAndTasks() {
   console.log('[TEST] Running Verification Check 2: Database Persistence & Task Management...\n');
+
+  // Authenticate as HR Director
+  const authRes = await fetch(`${BASE_URL}/api/auth/demo-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'HR Director' })
+  });
+  const authData = await authRes.json();
+  const token = authData.token;
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
 
   // 1. Create a dynamic test employee
   const testEmpData = {
@@ -22,7 +35,7 @@ async function testDatabaseAndTasks() {
 
   const createRes = await fetch(`${BASE_URL}/api/employees`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(testEmpData)
   });
 
@@ -34,7 +47,7 @@ async function testDatabaseAndTasks() {
   // 2. Add Task 1 (Completed)
   const task1Res = await fetch(`${BASE_URL}/api/performance/${empId}/tasks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ title: 'Task 1 - Unit Test', status: 'Completed', priority: 'High' })
   });
   const task1Data = await task1Res.json();
@@ -43,21 +56,25 @@ async function testDatabaseAndTasks() {
   // 3. Add Task 2 (In Progress)
   const task2Res = await fetch(`${BASE_URL}/api/performance/${empId}/tasks`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ title: 'Task 2 - Load Test', status: 'In Progress', priority: 'Medium' })
   });
   const task2Data = await task2Res.json();
   if (!task2Data.success) throw new Error('Failed to add Task 2');
 
   // Task completion rate should now be 1/2 = 50%
-  const updatedEmp = await (await fetch(`${BASE_URL}/api/employees/${empId}`)).json();
+  const updatedEmpRes = await fetch(`${BASE_URL}/api/employees/${empId}`, { headers });
+  const updatedEmp = await updatedEmpRes.json();
   if (updatedEmp.employee.metrics.taskCompletionRate !== 50) {
     throw new Error(`Expected task completion rate 50%, got ${updatedEmp.employee.metrics.taskCompletionRate}%`);
   }
   console.log(`- Task completion dynamically calculated: ${updatedEmp.employee.metrics.taskCompletionRate}% (1 of 2 completed)`);
 
   // 4. Clean up: Delete test employee
-  const delRes = await fetch(`${BASE_URL}/api/employees/${empId}`, { method: 'DELETE' });
+  const delRes = await fetch(`${BASE_URL}/api/employees/${empId}`, {
+    method: 'DELETE',
+    headers
+  });
   const delData = await delRes.json();
   if (!delData.success) throw new Error('Failed to delete test employee');
   console.log(`- Test employee purged cleanly: ${delData.employeeId}`);

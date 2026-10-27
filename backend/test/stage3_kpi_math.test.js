@@ -1,8 +1,21 @@
 // Verification Check 3: KPI Mathematical Precision & Boundary Conditions
-const BASE_URL = 'http://localhost:5000';
+const BASE_URL = process.env.TEST_URL || 'http://localhost:5000';
 
 async function testKpiMathAndEdgeCases() {
   console.log('[TEST] Running Verification Check 3: Real-Time KPI Precision & Boundary Conditions...\n');
+
+  // Authenticate as HR Director
+  const authRes = await fetch(`${BASE_URL}/api/auth/demo-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role: 'HR Director' })
+  });
+  const authData = await authRes.json();
+  const token = authData.token;
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
 
   const testCases = [
     {
@@ -48,7 +61,7 @@ async function testKpiMathAndEdgeCases() {
   for (const tc of testCases) {
     const res = await fetch(`${BASE_URL}/api/performance/EMP-1001/metrics`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify(tc.input)
     });
 
@@ -74,7 +87,7 @@ async function testKpiMathAndEdgeCases() {
   // Restore Aarav Patel's standard baseline
   await fetch(`${BASE_URL}/api/performance/EMP-1001/metrics`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       tasksGiven: 20,
       tasksCompleted: 18,

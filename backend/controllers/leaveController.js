@@ -12,9 +12,19 @@ const findEmployee = async (id) => {
 
 export const submitLeaveRequest = async (req, res) => {
   try {
-    const { employeeId, type, reason, startDate, endDate, days } = req.body;
-    const employee = await findEmployee(employeeId);
+    const { type, reason, startDate, endDate, days } = req.body;
+    let targetEmployeeId = req.body.employeeId;
 
+    // Defensive IDOR Prevention: If caller is a regular Employee, force target to their own employeeId
+    if (req.user?.role === 'Employee') {
+      targetEmployeeId = req.user.employeeId;
+    }
+
+    if (!targetEmployeeId) {
+      return res.status(400).json({ success: false, message: 'Employee ID is required.' });
+    }
+
+    const employee = await findEmployee(targetEmployeeId);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee profile not found' });
     }
@@ -57,7 +67,14 @@ export const getAllLeaveRequests = async (req, res) => {
     const employees = await Employee.find({}, 'employeeId name department role leaveRequests status initials avatarBg');
 
     const allLeaves = [];
+    const isEmployee = req.user?.role === 'Employee';
+
     employees.forEach(emp => {
+      // Defensive IDOR Prevention: Employees can only see their own leave requests
+      if (isEmployee && emp.employeeId !== req.user.employeeId) {
+        return;
+      }
+
       if (emp.leaveRequests && emp.leaveRequests.length > 0) {
         emp.leaveRequests.forEach(lr => {
           allLeaves.push({
@@ -97,14 +114,18 @@ export const getAllLeaveRequests = async (req, res) => {
 export const updateLeaveStatus = async (req, res) => {
   try {
     const { leaveId } = req.params;
-    const { status, decisionNote, callerRole } = req.body;
+    const { status, decisionNote } = req.body;
 
-    // Engineering Manager cannot approve/reject leaves
-    if (callerRole === 'Engineering Manager') {
+    // Server-Side Role Enforcement: Only HR Director is authorized to decide leave requests
+    if (req.user?.role !== 'HR Director') {
       return res.status(403).json({
         success: false,
         message: 'Leave authorization is restricted exclusively to Human Resources leadership.'
       });
+    }
+
+    if (!['Approved', 'Rejected', 'Pending'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid leave status supplied.' });
     }
 
     const employee = await Employee.findOne({ 'leaveRequests._id': leaveId });
@@ -118,7 +139,7 @@ export const updateLeaveStatus = async (req, res) => {
     }
 
     leave.status = status;
-    if (decisionNote) leave.decisionNote = decisionNote;
+    if (decisionNote) leave.decisionNote = String(decisionNote).trim();
 
     // Automatic status update if Approved
     if (status === 'Approved') {
@@ -152,7 +173,10 @@ export const updateLeaveStatus = async (req, res) => {
 
 export const getNotifications = async (req, res) => {
   try {
-    const { role = 'HR Director', employeeId = null, userEmail = '' } = req.query;
+    // Derive role and employee identity strictly from verified token
+    const role = req.user?.role || 'Employee';
+    const employeeId = req.user?.employeeId || null;
+    const userEmail = req.user?.email || '';
 
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
@@ -208,7 +232,7 @@ export const getNotifications = async (req, res) => {
 export const markNotificationRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userIdentifier } = req.body;
+    const userIdentifier = req.user?.email || req.user?.employeeId || req.user?.role;
 
     const notif = await Notification.findById(id);
     if (!notif) {
@@ -228,10 +252,9 @@ export const markNotificationRead = async (req, res) => {
 
 export const markAllNotificationsRead = async (req, res) => {
   try {
-    const { userIdentifier, role = 'ALL', employeeId = null } = req.body;
-    if (!userIdentifier) {
-      return res.status(400).json({ success: false, message: 'User identifier required' });
-    }
+    const userIdentifier = req.user?.email || req.user?.employeeId || req.user?.role;
+    const role = req.user?.role || 'ALL';
+    const employeeId = req.user?.employeeId || null;
 
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const query = {

@@ -17,7 +17,7 @@ async function runTests() {
     }
   };
 
-  // Test 1: Health Check
+  // Test 1: Health Check (Public)
   await test('Server Health Check (/health)', async () => {
     const res = await fetch(`${BASE_URL}/health`);
     if (!res.ok) throw new Error(`Status ${res.status}`);
@@ -39,9 +39,16 @@ async function runTests() {
     token = data.token;
   });
 
+  const authHeaders = () => ({
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  });
+
   // Test 3: Employees List & Pagination
   await test('Get Employees List (/api/employees)', async () => {
-    const res = await fetch(`${BASE_URL}/api/employees`);
+    const res = await fetch(`${BASE_URL}/api/employees`, {
+      headers: authHeaders()
+    });
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
     if (!data.success || !Array.isArray(data.employees)) throw new Error('Invalid employees payload');
@@ -50,7 +57,9 @@ async function runTests() {
 
   // Test 4: Single Employee Lookup by EMP-ID
   await test('Get Single Employee (/api/employees/EMP-1001)', async () => {
-    const res = await fetch(`${BASE_URL}/api/employees/EMP-1001`);
+    const res = await fetch(`${BASE_URL}/api/employees/EMP-1001`, {
+      headers: authHeaders()
+    });
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
     if (!data.success || data.employee.employeeId !== 'EMP-1001') throw new Error('Mismatch employee ID');
@@ -61,7 +70,7 @@ async function runTests() {
   await test('Update Employee Metrics & Real-Time KPI Recalculation', async () => {
     const res = await fetch(`${BASE_URL}/api/performance/EMP-1001/metrics`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         tasksGiven: 20,
         tasksCompleted: 19,
@@ -80,7 +89,9 @@ async function runTests() {
 
   // Test 6: Analytics Dashboard Aggregates
   await test('Analytics Dashboard Aggregates (/api/analytics/dashboard)', async () => {
-    const res = await fetch(`${BASE_URL}/api/analytics/dashboard`);
+    const res = await fetch(`${BASE_URL}/api/analytics/dashboard`, {
+      headers: authHeaders()
+    });
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
     if (!data.success || !data.stats || !data.departmentAnalytics || !data.topPerformers) {
@@ -90,7 +101,9 @@ async function runTests() {
 
   // Test 7: Insights Engine
   await test('Workforce Insights & Diagnostics (/api/insights)', async () => {
-    const res = await fetch(`${BASE_URL}/api/insights`);
+    const res = await fetch(`${BASE_URL}/api/insights`, {
+      headers: authHeaders()
+    });
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
     if (!data.success || !data.summary || !data.productivitySuggestions) {
@@ -100,7 +113,9 @@ async function runTests() {
 
   // Test 8: Report Generation
   await test('Monthly Executive Report Data (/api/reports/monthly)', async () => {
-    const res = await fetch(`${BASE_URL}/api/reports/monthly?month=Dec`);
+    const res = await fetch(`${BASE_URL}/api/reports/monthly?month=Dec`, {
+      headers: authHeaders()
+    });
     if (!res.ok) throw new Error(`Status ${res.status}`);
     const data = await res.json();
     if (!data.success || !data.reportMetadata || !data.departmentRankings) {
@@ -113,7 +128,7 @@ async function runTests() {
     // Submit leave
     const applyRes = await fetch(`${BASE_URL}/api/leaves`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         employeeId: 'EMP-1001',
         type: 'Privilege Leave',
@@ -131,7 +146,7 @@ async function runTests() {
     // Approve leave
     const approveRes = await fetch(`${BASE_URL}/api/leaves/${leaveId}/status`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ status: 'Approved', decisionNote: 'Approved by HR Director' })
     });
     const approveData = await approveRes.json();
@@ -144,7 +159,7 @@ async function runTests() {
   await test('Feedback Message Dispatch & Retrieval', async () => {
     const sendRes = await fetch(`${BASE_URL}/api/feedback`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({
         employeeId: 'EMP-1001',
         message: 'Outstanding sprint delivery and architectural leadership.',
@@ -155,7 +170,9 @@ async function runTests() {
     const sendData = await sendRes.json();
     if (!sendData.success) throw new Error('Feedback dispatch failed');
 
-    const getRes = await fetch(`${BASE_URL}/api/feedback/EMP-1001`);
+    const getRes = await fetch(`${BASE_URL}/api/feedback/EMP-1001`, {
+      headers: authHeaders()
+    });
     const getData = await getRes.json();
     if (!getData.success || getData.feedbacks.length === 0) {
       throw new Error('Feedback retrieval failed');

@@ -91,6 +91,13 @@ export const getMonthlyReportData = async (req, res) => {
 
 export const resetAndSeedDatabase = async (req, res) => {
   try {
+    if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DESTRUCTIVE_OPERATIONS !== 'true') {
+      return res.status(403).json({
+        success: false,
+        message: 'Database reset operation is disabled in production environment.'
+      });
+    }
+
     const result = await seedDatabase();
     res.json({
       success: true,

@@ -1,14 +1,51 @@
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = process.env.TEST_URL ? `${process.env.TEST_URL}/api` : 'http://localhost:5000/api';
 
 async function runStage7Tests() {
   console.log('[TEST] Running Stage 7 Comprehensive Verification for New Features...\n');
 
   try {
+    // Obtain tokens
+    const hrAuthRes = await fetch(`${BASE_URL}/auth/demo-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'HR Director' })
+    });
+    const hrAuthData = await hrAuthRes.json();
+    const hrToken = hrAuthData.token;
+    const hrHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${hrToken}`
+    };
+
+    const mgrAuthRes = await fetch(`${BASE_URL}/auth/demo-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'Engineering Manager' })
+    });
+    const mgrAuthData = await mgrAuthRes.json();
+    const mgrToken = mgrAuthData.token;
+    const mgrHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${mgrToken}`
+    };
+
+    const empAuthRes = await fetch(`${BASE_URL}/auth/demo-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'Employee' })
+    });
+    const empAuthData = await empAuthRes.json();
+    const empToken = empAuthData.token;
+    const empHeaders = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${empToken}`
+    };
+
     // ==========================================
     // 1. HELP DESK & SUPPORT TICKETS
     // ==========================================
     console.log('--- 1. Testing HR Help Desk & Requests ---');
-    const ticketsGetRes = await fetch(`${BASE_URL}/tickets`);
+    const ticketsGetRes = await fetch(`${BASE_URL}/tickets`, { headers: hrHeaders });
     const ticketsGetData = await ticketsGetRes.json();
     if (!ticketsGetData.success || !Array.isArray(ticketsGetData.tickets)) {
       throw new Error('Failed to retrieve tickets list');
@@ -18,7 +55,7 @@ async function runStage7Tests() {
     // Create a new support ticket
     const newTicketRes = await fetch(`${BASE_URL}/tickets`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: empHeaders,
       body: JSON.stringify({
         employeeId: 'EMP-1001',
         employeeName: 'Aarav Patel',
@@ -39,7 +76,7 @@ async function runStage7Tests() {
     // HR updates status & posts resolution note
     const updateTicketRes = await fetch(`${BASE_URL}/tickets/${createdTicketId}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: hrHeaders,
       body: JSON.stringify({
         status: 'Resolved',
         resolutionNote: 'Replacement keyboard issued from IT stock inventory.',
@@ -56,7 +93,7 @@ async function runStage7Tests() {
     // 2. ONBOARDING & OFFBOARDING PROCESS
     // ==========================================
     console.log('\n--- 2. Testing Onboarding & Offboarding Lifecycle ---');
-    const casesGetRes = await fetch(`${BASE_URL}/onboarding`);
+    const casesGetRes = await fetch(`${BASE_URL}/onboarding`, { headers: hrHeaders });
     const casesGetData = await casesGetRes.json();
     if (!casesGetData.success || !Array.isArray(casesGetData.cases)) {
       throw new Error('Failed to retrieve onboarding cases');
@@ -66,7 +103,7 @@ async function runStage7Tests() {
     // Create a new onboarding case
     const newCaseRes = await fetch(`${BASE_URL}/onboarding`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: hrHeaders,
       body: JSON.stringify({
         type: 'Onboarding',
         candidateName: 'Pooja Bhatt',
@@ -87,7 +124,8 @@ async function runStage7Tests() {
     // Toggle a checklist task
     const firstTask = createdCase.checklist[2]; // Uncompleted task
     const toggleRes = await fetch(`${BASE_URL}/onboarding/${createdCase._id}/tasks/${firstTask._id}/toggle`, {
-      method: 'PATCH'
+      method: 'PATCH',
+      headers: hrHeaders
     });
     const toggleData = await toggleRes.json();
     if (!toggleData.success) {
@@ -99,7 +137,7 @@ async function runStage7Tests() {
     // 3. FILES & DOCUMENT MANAGEMENT
     // ==========================================
     console.log('\n--- 3. Testing Files & Document Management ---');
-    const docsGetRes = await fetch(`${BASE_URL}/documents`);
+    const docsGetRes = await fetch(`${BASE_URL}/documents`, { headers: hrHeaders });
     const docsGetData = await docsGetRes.json();
     if (!docsGetData.success || !Array.isArray(docsGetData.documents)) {
       throw new Error('Failed to retrieve corporate documents');
@@ -109,7 +147,7 @@ async function runStage7Tests() {
     // Upload a new document
     const newDocRes = await fetch(`${BASE_URL}/documents`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: hrHeaders,
       body: JSON.stringify({
         title: 'Information Security & Encryption Policy 2026',
         category: 'Legal & Compliance',
@@ -128,7 +166,8 @@ async function runStage7Tests() {
 
     // Download simulation
     const downloadRes = await fetch(`${BASE_URL}/documents/${newDocData.document._id}/download`, {
-      method: 'POST'
+      method: 'POST',
+      headers: hrHeaders
     });
     const downloadData = await downloadRes.json();
     if (!downloadData.success || downloadData.downloadCount !== 1) {
@@ -140,7 +179,7 @@ async function runStage7Tests() {
     // 4. TIME LOGS & PROJECTS
     // ==========================================
     console.log('\n--- 4. Testing Time Logs & Sprint Projects ---');
-    const timeLogsGetRes = await fetch(`${BASE_URL}/timelogs`);
+    const timeLogsGetRes = await fetch(`${BASE_URL}/timelogs`, { headers: hrHeaders });
     const timeLogsGetData = await timeLogsGetRes.json();
     if (!timeLogsGetData.success || !Array.isArray(timeLogsGetData.timeLogs)) {
       throw new Error('Failed to retrieve time logs');
@@ -150,7 +189,7 @@ async function runStage7Tests() {
     // Log hours as employee
     const newTimeLogRes = await fetch(`${BASE_URL}/timelogs`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: empHeaders,
       body: JSON.stringify({
         employeeId: 'EMP-1001',
         employeeName: 'Aarav Patel',
@@ -171,7 +210,7 @@ async function runStage7Tests() {
     // Manager approves the log
     const approveLogRes = await fetch(`${BASE_URL}/timelogs/${newTimeLogData.timeLog._id}/status`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: mgrHeaders,
       body: JSON.stringify({ status: 'Approved' })
     });
     const approveLogData = await approveLogRes.json();

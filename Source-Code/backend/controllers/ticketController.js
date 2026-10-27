@@ -3,12 +3,12 @@ import Notification from '../models/Notification.js';
 
 export const getTickets = async (req, res) => {
   try {
-    const { role, employeeId, status, category } = req.query;
+    const { status, category } = req.query;
     const filter = {};
 
-    // If regular employee, only show their tickets
-    if (role === 'Employee' && employeeId) {
-      filter.employeeId = employeeId;
+    // IDOR Protection: If caller is regular employee, restrict strictly to their own tickets
+    if (req.user?.role === 'Employee') {
+      filter.employeeId = req.user.employeeId;
     }
 
     if (status && status !== 'All') {
@@ -33,10 +33,16 @@ export const getTickets = async (req, res) => {
 
 export const createTicket = async (req, res) => {
   try {
-    const { employeeId, employeeName, department, category, priority, subject, description } = req.body;
+    const { employeeName, department, category, priority, subject, description } = req.body;
+    let employeeId = req.body.employeeId;
 
     if (!subject || !description) {
       return res.status(400).json({ success: false, message: 'Subject and description are required' });
+    }
+
+    // Force employeeId to the caller's verified employeeId if regular Employee
+    if (req.user?.role === 'Employee') {
+      employeeId = req.user.employeeId;
     }
 
     const count = await Ticket.countDocuments();
@@ -45,7 +51,7 @@ export const createTicket = async (req, res) => {
     const ticket = new Ticket({
       ticketId,
       employeeId: employeeId || 'EMP-1001',
-      employeeName: employeeName || 'Aarav Patel',
+      employeeName: employeeName || 'Employee',
       department: department || 'Engineering',
       category: category || 'General Administrative',
       priority: priority || 'Medium',
@@ -90,8 +96,8 @@ export const updateTicketStatus = async (req, res) => {
 
     if (resolutionNote && callerName) {
       ticket.replies.push({
-        sender: callerName || 'Priya Sharma (HR Director)',
-        senderRole: 'HR Director',
+        sender: callerName || 'HR Operations',
+        senderRole: req.user?.role || 'HR Director',
         message: resolutionNote.trim(),
         createdAt: new Date()
       });
@@ -122,7 +128,7 @@ export const updateTicketStatus = async (req, res) => {
 export const addTicketReply = async (req, res) => {
   try {
     const { id } = req.params;
-    const { sender, senderRole, message } = req.body;
+    const { sender, message } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({ success: false, message: 'Reply message cannot be empty' });
@@ -133,9 +139,17 @@ export const addTicketReply = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
 
+    // Role check: HR & Managers can reply to all; regular Employees can only reply to their own tickets
+    if (req.user?.role === 'Employee' && ticket.employeeId !== req.user.employeeId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: You can only reply to tickets created by you.'
+      });
+    }
+
     ticket.replies.push({
-      sender: sender || 'User',
-      senderRole: senderRole || 'Employee',
+      sender: sender || req.user?.email || 'User',
+      senderRole: req.user?.role || 'Employee',
       message: message.trim(),
       createdAt: new Date()
     });

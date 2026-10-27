@@ -6,6 +6,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
+import './config/jwt.js'; // Validate JWT configuration on startup
 import Employee from './models/Employee.js';
 import { seedDatabase } from './seed.js';
 
@@ -27,14 +28,36 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Security Headers Middleware
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('X-XSS-Protection', '1; mode=block');
+  next();
+});
+
+// Configurable CORS Allowlist
+const rawClientUrl = process.env.CLIENT_URL || '';
+const allowedOrigins = rawClientUrl
+  ? rawClientUrl.split(',').map(s => s.trim().replace(/\/$/, ''))
+  : ['http://localhost:5173', 'http://localhost:5000', 'http://localhost:3000', 'http://127.0.0.1:5173'];
+
 app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  origin: (origin, callback) => {
+    // Allow non-browser requests (Postman, curl, internal server calls)
+    if (!origin) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production' || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('Cross-Origin Request Blocked by CORS allowlist'));
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('dev'));
@@ -54,7 +77,7 @@ app.use('/api/onboarding', onboardingRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/timelogs', timeLogRoutes);
 
-// Health check endpoint
+// Health check endpoint (Public)
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -89,31 +112,25 @@ if (fs.existsSync(frontendDistPath)) {
     res.json({
       message: 'Welcome to HR Hub API',
       version: '1.0.0',
-      status: 'active',
-      endpoints: [
-        '/api/auth',
-        '/api/employees',
-        '/api/performance',
-        '/api/analytics',
-        '/api/insights',
-        '/api/reports',
-        '/api/leaves',
-        '/api/feedback',
-        '/api/tickets',
-        '/api/onboarding',
-        '/api/documents',
-        '/api/timelogs'
-      ]
+      status: 'active'
     });
   });
 }
 
-// Centralized Error Handling Middleware
+// Centralized Secure Error Handling Middleware
 app.use((err, req, res, next) => {
-  console.error('API Error:', err.stack);
-  res.status(err.status || 500).json({
+  if (process.env.NODE_ENV !== 'production') {
+    console.error('API Error:', err.stack);
+  } else {
+    console.error('API Error:', err.message);
+  }
+
+  const statusCode = err.status || err.statusCode || 500;
+  res.status(statusCode).json({
     success: false,
-    message: err.message || 'Internal Server Error'
+    message: (process.env.NODE_ENV === 'production' && statusCode === 500)
+      ? 'An unexpected internal server error occurred.'
+      : (err.message || 'Internal Server Error')
   });
 });
 

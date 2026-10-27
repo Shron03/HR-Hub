@@ -1,13 +1,7 @@
-import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Employee from '../models/Employee.js';
 import Notification from '../models/Notification.js';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'hr_hub_super_secret_jwt_key_2026';
-
-const generateToken = (id, role) => {
-  return jwt.sign({ id, role }, JWT_SECRET, { expiresIn: '7d' });
-};
+import { generateToken } from '../config/jwt.js';
 
 const getInitials = (name) => {
   if (!name) return 'HR';
@@ -23,7 +17,8 @@ export const login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please provide email and password' });
     }
 
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const normalizedEmail = email.toLowerCase().trim();
+    const user = await User.findOne({ email: normalizedEmail }).select('+password');
     if (!user) {
       return res.status(401).json({ success: false, message: 'Invalid corporate email or password' });
     }
@@ -49,10 +44,16 @@ export const login = async (req, res) => {
       });
     }
 
-    const token = generateToken(user._id, user.role);
-
     // Look up associated employee profile
     const emp = await Employee.findOne({ email: user.email.toLowerCase() });
+    const employeeId = emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null);
+
+    const token = generateToken({
+      id: user._id.toString(),
+      role: user.role,
+      email: user.email,
+      employeeId
+    });
 
     res.json({
       success: true,
@@ -64,7 +65,7 @@ export const login = async (req, res) => {
         role: user.role,
         department: user.department,
         initials: getInitials(user.name),
-        employeeId: emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null),
+        employeeId,
         status: emp?.status || 'Active'
       }
     });
@@ -76,9 +77,16 @@ export const login = async (req, res) => {
 export const demoLogin = async (req, res) => {
   try {
     const { role } = req.body;
-    const targetRole = role || 'HR Director';
+    const allowedRoles = ['HR Director', 'Engineering Manager', 'Employee'];
+    const targetRole = allowedRoles.includes(role) ? role : 'HR Director';
 
-    let user = await User.findOne({ role: targetRole });
+    let user = await User.findOne({ role: targetRole, approvalStatus: 'Approved' });
+    if (!user) {
+      user = await User.findOne({ role: targetRole });
+    }
+    if (!user) {
+      user = await User.findOne({ approvalStatus: 'Approved' });
+    }
     if (!user) {
       user = await User.findOne();
     }
@@ -87,9 +95,17 @@ export const demoLogin = async (req, res) => {
       return res.status(404).json({ success: false, message: 'No demo users found. Please seed the database.' });
     }
 
-    const token = generateToken(user._id, user.role);
     const emp = await Employee.findOne({ email: user.email.toLowerCase() }) ||
       (user.role === 'Employee' ? await Employee.findOne({ employeeId: 'EMP-1001' }) : null);
+
+    const employeeId = emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null);
+
+    const token = generateToken({
+      id: user._id.toString(),
+      role: user.role,
+      email: user.email,
+      employeeId
+    });
 
     res.json({
       success: true,
@@ -101,7 +117,7 @@ export const demoLogin = async (req, res) => {
         role: user.role,
         department: user.department,
         initials: getInitials(user.name),
-        employeeId: emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null),
+        employeeId,
         status: emp?.status || 'Active'
       }
     });
@@ -112,20 +128,37 @@ export const demoLogin = async (req, res) => {
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role, department } = req.body;
+    const { name, email, password, department } = req.body;
 
-    const userExists = await User.findOne({ email: email.toLowerCase() });
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email, and password are required' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+    }
+
+    if (password.length < 6) {
+      return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const userExists = await User.findOne({ email: normalizedEmail });
     if (userExists) {
       return res.status(400).json({ success: false, message: 'An account already exists with this email address' });
     }
 
-    // New registration defaults to Pending HR Approval
+    // Defensive Privilege Escalation Prevention: Force all public self-registrations to 'Employee'
+    const assignedRole = 'Employee';
+    const assignedDepartment = department ? department.trim() : 'Engineering';
+
     const user = await User.create({
-      name,
-      email: email.toLowerCase(),
+      name: name.trim(),
+      email: normalizedEmail,
       password,
-      role: role || 'Employee',
-      department: department || 'Engineering',
+      role: assignedRole,
+      department: assignedDepartment,
       isApproved: false,
       approvalStatus: 'Pending'
     });
@@ -133,7 +166,7 @@ export const register = async (req, res) => {
     // Create Notification for HR Director
     await Notification.create({
       title: 'New Account Registration Pending Approval',
-      message: `${name} (${role || 'Employee'}, ${department || 'Engineering'}) has registered and is awaiting authorization.`,
+      message: `${user.name} (${user.role}, ${user.department}) has registered and is awaiting authorization.`,
       category: 'registration',
       recipientRole: 'HR Director',
       actionLink: 'employees'
@@ -254,20 +287,13 @@ export const rejectRegistration = async (req, res) => {
 
 export const getMe = async (req, res) => {
   try {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ success: false, message: 'No authorization token provided' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, JWT_SECRET);
-    const user = await User.findById(decoded.id).select('-password');
-
+    const user = await User.findById(req.user.id).select('-password');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
     const emp = await Employee.findOne({ email: user.email.toLowerCase() });
+    const employeeId = emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null);
 
     res.json({
       success: true,
@@ -278,11 +304,11 @@ export const getMe = async (req, res) => {
         role: user.role,
         department: user.department,
         initials: getInitials(user.name),
-        employeeId: emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null),
+        employeeId,
         status: emp?.status || 'Active'
       }
     });
   } catch (error) {
-    res.status(401).json({ success: false, message: 'Invalid or expired token' });
+    res.status(500).json({ success: false, message: error.message });
   }
 };

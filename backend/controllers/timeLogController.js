@@ -3,10 +3,16 @@ import Notification from '../models/Notification.js';
 
 export const getTimeLogs = async (req, res) => {
   try {
-    const { employeeId, project, status } = req.query;
+    const { project, status } = req.query;
     const filter = {};
 
-    if (employeeId) filter.employeeId = employeeId;
+    // IDOR Protection: Regular Employees can only view their own time logs
+    if (req.user?.role === 'Employee') {
+      filter.employeeId = req.user.employeeId;
+    } else if (req.query.employeeId) {
+      filter.employeeId = req.query.employeeId;
+    }
+
     if (project && project !== 'All') filter.project = project;
     if (status && status !== 'All') filter.status = status;
 
@@ -24,10 +30,16 @@ export const getTimeLogs = async (req, res) => {
 
 export const createTimeLog = async (req, res) => {
   try {
-    const { employeeId, employeeName, department, project, taskName, hours, date, notes } = req.body;
+    const { employeeName, department, project, taskName, hours, date, notes } = req.body;
+    let employeeId = req.body.employeeId;
 
     if (!project || !taskName || !hours || !date) {
       return res.status(400).json({ success: false, message: 'Project, task, hours, and date are required' });
+    }
+
+    // Force employeeId if regular employee
+    if (req.user?.role === 'Employee') {
+      employeeId = req.user.employeeId;
     }
 
     const count = await TimeLog.countDocuments();
@@ -36,11 +48,11 @@ export const createTimeLog = async (req, res) => {
     const timeLog = new TimeLog({
       logId,
       employeeId: employeeId || 'EMP-1001',
-      employeeName: employeeName || 'Aarav Patel',
+      employeeName: employeeName || 'Employee',
       department: department || 'Engineering',
       project,
       taskName: taskName.trim(),
-      hours: Number(hours),
+      hours: Math.min(24, Math.max(0.5, Number(hours) || 1)),
       date,
       status: 'Pending Approval',
       notes: notes || ''
@@ -57,7 +69,7 @@ export const createTimeLog = async (req, res) => {
       actionLink: 'mgr-approvals'
     });
 
-    res.status(201).json({
+    res.json({
       success: true,
       message: 'Timesheet entry logged successfully',
       timeLog
@@ -72,12 +84,16 @@ export const updateTimeLogStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
+    if (!['Approved', 'Rejected', 'Pending Approval'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid timesheet status supplied.' });
+    }
+
     const log = await TimeLog.findById(id);
     if (!log) {
       return res.status(404).json({ success: false, message: 'Timesheet entry not found' });
     }
 
-    if (status) log.status = status;
+    log.status = status;
     await log.save();
 
     res.json({

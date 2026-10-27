@@ -60,6 +60,13 @@ export const seedDemoEmployees = async (req, res) => {
 
 export const clearAllEmployeesData = async (req, res) => {
   try {
+    if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DESTRUCTIVE_OPERATIONS !== 'true') {
+      return res.status(403).json({
+        success: false,
+        message: 'Destructive database purge operations are disabled in production environment.'
+      });
+    }
+
     const result = await clearEmployeesOnly();
     res.json({
       success: true,
@@ -90,7 +97,9 @@ export const getEmployees = async (req, res) => {
     }
 
     if (search && search.trim() !== '') {
-      const searchRegex = new RegExp(search.trim(), 'i');
+      // Escape special regex characters to prevent ReDoS
+      const safeSearch = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const searchRegex = new RegExp(safeSearch, 'i');
       query.$or = [
         { name: searchRegex },
         { email: searchRegex },
@@ -107,8 +116,8 @@ export const getEmployees = async (req, res) => {
     else if (sort === 'tasks-desc') sortOptions = { 'metrics.taskCompletionRate': -1 };
     else sortOptions = { createdAt: -1 };
 
-    const pageNum = parseInt(page, 10);
-    const limitNum = parseInt(limit, 10);
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 100));
     const skip = (pageNum - 1) * limitNum;
 
     const totalCount = await Employee.countDocuments(query);
@@ -116,6 +125,8 @@ export const getEmployees = async (req, res) => {
       .sort(sortOptions)
       .skip(skip)
       .limit(limitNum);
+
+    const isRegularEmployee = req.user?.role === 'Employee';
 
     const employees = rawEmployees.map(emp => {
       const obj = emp.toObject();
@@ -126,6 +137,13 @@ export const getEmployees = async (req, res) => {
       } else if (presence.isAbsence && presence.presenceStatus === 'Absent') {
         obj.status = 'Absent';
       }
+
+      // Privacy: Redact sensitive compensation details of other colleagues for regular employees
+      if (isRegularEmployee && obj.employeeId !== req.user.employeeId) {
+        delete obj.salary;
+        delete obj.compensation;
+      }
+
       return obj;
     });
 
@@ -186,9 +204,16 @@ export const getEmployeeById = async (req, res) => {
       });
     }
 
+    const empObj = employee.toObject();
+    // Privacy: Redact sensitive compensation if viewing peer profile as regular employee
+    if (req.user?.role === 'Employee' && empObj.employeeId !== req.user.employeeId) {
+      delete empObj.salary;
+      delete empObj.compensation;
+    }
+
     res.json({
       success: true,
-      employee,
+      employee: empObj,
       recommendations
     });
   } catch (error) {
@@ -200,9 +225,17 @@ export const createEmployee = async (req, res) => {
   try {
     const data = { ...req.body };
 
+    if (!data.name || !data.email) {
+      return res.status(400).json({ success: false, message: 'Name and email are required fields.' });
+    }
+
     if (!data.employeeId) {
       const count = await Employee.countDocuments();
       data.employeeId = `EMP-${1000 + count + 1}`;
+    }
+
+    if (data.salary !== undefined) {
+      data.salary = Math.max(0, Number(data.salary) || 0);
     }
 
     if (!data.monthlyHistory || data.monthlyHistory.length === 0) {
@@ -262,58 +295,58 @@ export const updateEmployee = async (req, res) => {
     }
 
     // Authorized HR edits: Role, Department, Salary, Status, Location, Manager, WorkMode, Phone, Notes, KPI
-    if (req.body.role !== undefined && req.body.role.trim() !== '') {
+    if (req.body.role !== undefined && typeof req.body.role === 'string' && req.body.role.trim() !== '') {
       employee.role = req.body.role.trim();
     }
-    if (req.body.department !== undefined && req.body.department.trim() !== '') {
+    if (req.body.department !== undefined && typeof req.body.department === 'string' && req.body.department.trim() !== '') {
       employee.department = req.body.department.trim();
     }
     if (req.body.salary !== undefined) {
-      employee.salary = Number(req.body.salary);
+      employee.salary = Math.max(0, Number(req.body.salary) || 0);
     }
-    if (req.body.status !== undefined) {
+    if (req.body.status !== undefined && ['Active', 'On Leave', 'Absent', 'Probation'].includes(req.body.status)) {
       employee.status = req.body.status;
     }
     if (req.body.location !== undefined) {
-      employee.location = req.body.location.trim();
+      employee.location = String(req.body.location).trim();
     }
     if (req.body.managerName !== undefined) {
-      employee.managerName = req.body.managerName.trim();
+      employee.managerName = String(req.body.managerName).trim();
     }
-    if (req.body.workMode !== undefined) {
+    if (req.body.workMode !== undefined && ['Hybrid', 'Remote', 'On-Site'].includes(req.body.workMode)) {
       employee.workMode = req.body.workMode;
     }
     if (req.body.phone !== undefined) {
-      employee.phone = req.body.phone.trim();
+      employee.phone = String(req.body.phone).trim();
     }
     if (req.body.experienceYears !== undefined) {
-      employee.experienceYears = Number(req.body.experienceYears);
+      employee.experienceYears = Math.max(0, Number(req.body.experienceYears) || 0);
     }
     if (req.body.notes !== undefined) {
-      employee.notes = req.body.notes;
+      employee.notes = String(req.body.notes);
     }
-    if (req.body.tags !== undefined) {
-      employee.tags = req.body.tags;
+    if (req.body.tags !== undefined && Array.isArray(req.body.tags)) {
+      employee.tags = req.body.tags.map(t => String(t).trim());
     }
-    if (req.body.kpiData) {
+    if (req.body.kpiData && typeof req.body.kpiData === 'object') {
       employee.kpiData = {
         ...employee.kpiData.toObject(),
         ...req.body.kpiData
       };
     }
-    if (req.body.metrics) {
+    if (req.body.metrics && typeof req.body.metrics === 'object') {
       employee.metrics = {
         ...employee.metrics.toObject(),
         ...req.body.metrics
       };
     }
-    if (req.body.compensation) {
+    if (req.body.compensation && typeof req.body.compensation === 'object') {
       employee.compensation = {
         ...(employee.compensation ? employee.compensation.toObject() : {}),
         ...req.body.compensation
       };
     }
-    if (req.body.designationChange) {
+    if (req.body.designationChange && typeof req.body.designationChange === 'object') {
       if (!Array.isArray(employee.designationHistory)) {
         employee.designationHistory = [];
       }

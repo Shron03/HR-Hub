@@ -161,6 +161,16 @@ export default function App() {
   };
 
   useEffect(() => {
+    const handleUnauthorized = () => {
+      setCurrentUser(null);
+      api.logout();
+      showToast('Your session has expired or is invalid. Please authenticate again.', 'warning');
+    };
+    window.addEventListener('hrhub_unauthorized', handleUnauthorized);
+    return () => window.removeEventListener('hrhub_unauthorized', handleUnauthorized);
+  }, []);
+
+  useEffect(() => {
     if (currentUser) {
       loadAllData();
       if (currentUser.role === 'Employee' && (activeTab === 'org-directory' || activeTab === 'dashboard')) {
@@ -187,9 +197,8 @@ export default function App() {
 
   // Handle Logout
   const handleLogout = () => {
+    api.logout();
     setCurrentUser(null);
-    sessionStorage.removeItem('hrhub_user');
-    localStorage.removeItem('hrhub_user');
     showToast('Signed out successfully. Select or sign in with another account.', 'info');
   };
 

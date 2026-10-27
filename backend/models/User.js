@@ -2,9 +2,9 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 const UserSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true, lowercase: true },
-  password: { type: String, required: true },
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  password: { type: String, required: true, select: false },
   role: {
     type: String,
     enum: ['HR Director', 'Engineering Manager', 'HR Specialist', 'Employee'],
@@ -28,6 +28,9 @@ UserSchema.pre('save', async function (next) {
 });
 
 UserSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) {
+    throw new Error('Password hash was not selected in query');
+  }
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

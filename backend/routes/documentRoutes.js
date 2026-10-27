@@ -5,12 +5,13 @@ import {
   deleteDocument,
   recordDownload
 } from '../controllers/documentController.js';
+import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.get('/', getDocuments);
-router.post('/', createDocument);
-router.delete('/:id', deleteDocument);
-router.post('/:id/download', recordDownload);
+router.get('/', authenticateToken, getDocuments);
+router.post('/', authenticateToken, authorizeRoles('HR Director'), createDocument);
+router.delete('/:id', authenticateToken, authorizeRoles('HR Director'), deleteDocument);
+router.post('/:id/download', authenticateToken, recordDownload);
 
 export default router;

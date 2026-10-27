@@ -28,21 +28,25 @@ export const updateEmployeeMetrics = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    // HR can update salary and status
-    if (salary !== undefined) employee.salary = Number(salary);
-    if (status !== undefined) employee.status = status;
+    // HR can update salary and status; Engineering Managers cannot modify salary
+    if (salary !== undefined && req.user?.role === 'HR Director') {
+      employee.salary = Math.max(0, Number(salary) || 0);
+    }
+    if (status !== undefined && req.user?.role === 'HR Director') {
+      employee.status = status;
+    }
 
-    // Update kpiData
+    // Update kpiData with validated numbers
     if (!employee.kpiData) {
       employee.kpiData = {};
     }
 
-    if (tasksGiven !== undefined) employee.kpiData.tasksGiven = Math.max(1, Number(tasksGiven));
-    if (tasksCompleted !== undefined) employee.kpiData.tasksCompleted = Math.max(0, Number(tasksCompleted));
-    if (reviewScore !== undefined) employee.kpiData.reviewScore = Math.min(10, Math.max(0, Number(reviewScore)));
-    if (attendanceRate !== undefined) employee.kpiData.attendanceRate = Math.min(100, Math.max(0, Number(attendanceRate)));
-    if (projectContribution !== undefined) employee.kpiData.projectContribution = Number(projectContribution);
-    if (workEfficiency !== undefined) employee.kpiData.workEfficiency = Number(workEfficiency);
+    if (tasksGiven !== undefined) employee.kpiData.tasksGiven = Math.max(1, Number(tasksGiven) || 1);
+    if (tasksCompleted !== undefined) employee.kpiData.tasksCompleted = Math.max(0, Number(tasksCompleted) || 0);
+    if (reviewScore !== undefined) employee.kpiData.reviewScore = Math.min(10, Math.max(0, Number(reviewScore) || 0));
+    if (attendanceRate !== undefined) employee.kpiData.attendanceRate = Math.min(100, Math.max(0, Number(attendanceRate) || 0));
+    if (projectContribution !== undefined) employee.kpiData.projectContribution = Math.min(100, Math.max(0, Number(projectContribution) || 0));
+    if (workEfficiency !== undefined) employee.kpiData.workEfficiency = Math.min(100, Math.max(0, Number(workEfficiency) || 0));
 
     // Save triggers pre-save hook which computes taskCompletionRate, productivityScore, overallScore, and performanceCategory
     await employee.save();
@@ -65,18 +69,22 @@ export const addTask = async (req, res) => {
     const { id } = req.params;
     const { title, project, deadline, priority, status, efficiencyRating } = req.body;
 
+    if (!title || String(title).trim() === '') {
+      return res.status(400).json({ success: false, message: 'Task title is required.' });
+    }
+
     const employee = await findEmployee(id);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
     employee.tasks.push({
-      title,
-      project: project || 'Internal Project',
-      deadline: deadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      priority: priority || 'Medium',
-      status: status || 'In Progress',
-      efficiencyRating: efficiencyRating !== undefined ? Number(efficiencyRating) : 85
+      title: String(title).trim(),
+      project: project ? String(project).trim() : 'Internal Project',
+      deadline: deadline ? new Date(deadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      priority: ['Critical', 'High', 'Medium', 'Low'].includes(priority) ? priority : 'Medium',
+      status: ['Pending', 'In Progress', 'Completed'].includes(status) ? status : 'In Progress',
+      efficiencyRating: efficiencyRating !== undefined ? Math.min(100, Math.max(0, Number(efficiencyRating) || 85)) : 85
     });
 
     // Automatically update tasksGiven
@@ -108,13 +116,25 @@ export const updateTaskStatus = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
+    // Role check: HR and Managers can update any task; regular Employees can only update their own tasks
+    if (req.user?.role === 'Employee' && employee.employeeId !== req.user.employeeId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: You cannot modify tasks of other employees.'
+      });
+    }
+
     const task = employee.tasks.id(taskId);
     if (!task) {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
-    if (status) task.status = status;
-    if (efficiencyRating !== undefined) task.efficiencyRating = Number(efficiencyRating);
+    if (status && ['Pending', 'In Progress', 'Completed'].includes(status)) {
+      task.status = status;
+    }
+    if (efficiencyRating !== undefined && req.user?.role !== 'Employee') {
+      task.efficiencyRating = Math.min(100, Math.max(0, Number(efficiencyRating) || 85));
+    }
 
     // Update tasks completed count
     if (!employee.kpiData) employee.kpiData = {};

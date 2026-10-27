@@ -1,9 +1,26 @@
-const BASE_URL = 'http://localhost:5000/api';
+const BASE_URL = process.env.TEST_URL ? `${process.env.TEST_URL}/api` : 'http://localhost:5000/api';
 
 async function runStage6Tests() {
   console.log('[TEST] Running Stage 6 Verification: User Approvals, RBAC & 3-Day Notifications...\n');
 
   try {
+    // 0. Obtain HR Director & Manager tokens
+    const hrAuthRes = await fetch(`${BASE_URL}/auth/demo-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'HR Director' })
+    });
+    const hrAuthData = await hrAuthRes.json();
+    const hrToken = hrAuthData.token;
+
+    const mgrAuthRes = await fetch(`${BASE_URL}/auth/demo-login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: 'Engineering Manager' })
+    });
+    const mgrAuthData = await mgrAuthRes.json();
+    const mgrToken = mgrAuthData.token;
+
     // 1. Register a new user
     const testEmail = `newemployee_${Date.now()}@hrhub.in`;
     const regRes = await fetch(`${BASE_URL}/auth/register`, {
@@ -41,7 +58,9 @@ async function runStage6Tests() {
     }
 
     // 3. HR retrieves pending registrations
-    const pendingRes = await fetch(`${BASE_URL}/auth/registrations/pending`);
+    const pendingRes = await fetch(`${BASE_URL}/auth/registrations/pending`, {
+      headers: { 'Authorization': `Bearer ${hrToken}` }
+    });
     const pendingData = await pendingRes.json();
     const pendingItem = (pendingData.registrations || []).find(r => r.email === testEmail);
     if (!pendingItem) {
@@ -52,7 +71,10 @@ async function runStage6Tests() {
     // 4. HR approves registration
     const approveRes = await fetch(`${BASE_URL}/auth/registrations/${pendingItem._id}/approve`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${hrToken}`
+      }
     });
     const approveData = await approveRes.json();
     if (!approveData.success || !approveData.employee) {
@@ -76,16 +98,20 @@ async function runStage6Tests() {
     console.log('- Employee successfully logged in after approval');
 
     // 6. Test RBAC: Engineering Manager cannot approve leaves
-    const leavesRes = await fetch(`${BASE_URL}/leaves`);
+    const leavesRes = await fetch(`${BASE_URL}/leaves`, {
+      headers: { 'Authorization': `Bearer ${hrToken}` }
+    });
     const leavesData = await leavesRes.json();
     const pendingLeave = leavesData.leaveRequests.find(l => l.status === 'Pending') || leavesData.leaveRequests[0];
     if (pendingLeave) {
       const mgrActionRes = await fetch(`${BASE_URL}/leaves/${pendingLeave.id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${mgrToken}`
+        },
         body: JSON.stringify({
-          status: 'Approved',
-          callerRole: 'Engineering Manager'
+          status: 'Approved'
         })
       });
       if (mgrActionRes.status === 403) {
@@ -96,7 +122,9 @@ async function runStage6Tests() {
     }
 
     // 7. Test 3-day notification window & read tracking
-    const notifsRes = await fetch(`${BASE_URL}/leaves/notifications?role=HR Director`);
+    const notifsRes = await fetch(`${BASE_URL}/leaves/notifications`, {
+      headers: { 'Authorization': `Bearer ${hrToken}` }
+    });
     const notifsData = await notifsRes.json();
     if (!notifsData.success) {
       throw new Error('Failed to retrieve notifications');

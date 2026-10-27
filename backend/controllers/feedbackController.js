@@ -24,9 +24,9 @@ export const sendFeedback = async (req, res) => {
     }
 
     const feedback = {
-      from: from || 'Priya Sharma (HR Director)',
+      from: from || (req.user?.role === 'HR Director' ? 'Priya Sharma (HR Director)' : 'Rahul Verma (Engineering Manager)'),
       message: message.trim(),
-      category: category || 'Recognition',
+      category: ['Recognition', 'Coaching', 'Milestone', 'Critical'].includes(category) ? category : 'Recognition',
       date: new Date()
     };
 
@@ -61,6 +61,14 @@ export const getEmployeeFeedbacks = async (req, res) => {
 
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
+    }
+
+    // IDOR Protection: Regular Employees can only view their own feedback history
+    if (req.user?.role === 'Employee' && employee.employeeId !== req.user.employeeId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: You can only view your own appraisal feedback notes.'
+      });
     }
 
     res.json({
