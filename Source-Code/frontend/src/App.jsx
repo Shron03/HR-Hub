@@ -206,13 +206,49 @@ export default function App() {
   const handleResetDemoData = async () => {
     try {
       setIsOperatingData(true);
-      const res = await api.seedDemoData();
+      const res = currentUser?.isDemo
+        ? await api.resetDemoWorkspace()
+        : await api.seedDemoData();
+
       if (res.success) {
+        if (res.user) {
+          setCurrentUser(res.user);
+          sessionStorage.setItem('hrhub_user', JSON.stringify(res.user));
+        }
         await loadAllData();
         showToast('Demo environment reset to standard 15-employee Indian dataset', 'success');
+      } else {
+        showToast(res.message || 'Error resetting demo', 'error');
       }
     } catch (err) {
       showToast('Error resetting demo: ' + err.message, 'error');
+    } finally {
+      setIsOperatingData(false);
+    }
+  };
+
+  // Handle Safe Demo Role Switching
+  const handleSwitchDemoRole = async (newRole) => {
+    try {
+      setIsOperatingData(true);
+      const res = await api.switchDemoRole(newRole);
+      if (res.success && res.user) {
+        setCurrentUser(res.user);
+        sessionStorage.setItem('hrhub_user', JSON.stringify(res.user));
+        if (newRole === 'Employee') {
+          setActiveTab('emp-attendance-leave');
+        } else if (newRole === 'Engineering Manager') {
+          setActiveTab('mgr-approvals');
+        } else {
+          setActiveTab('org-directory');
+        }
+        await loadAllData();
+        showToast(`Switched demo role to ${newRole}`, 'success');
+      } else {
+        showToast(res.message || 'Error switching demo role', 'error');
+      }
+    } catch (err) {
+      showToast('Error switching demo role: ' + err.message, 'error');
     } finally {
       setIsOperatingData(false);
     }
@@ -446,6 +482,7 @@ export default function App() {
             onOpenNotifications={() => setIsNotificationDrawerOpen(true)}
             unreadNotificationsCount={unreadNotificationsCount}
             onResetDemo={handleResetDemoData}
+            onSwitchDemoRole={handleSwitchDemoRole}
             isOperatingData={isOperatingData}
             pendingRegistrationsCount={pendingRegistrations.length}
             onOpenRegistrationsModal={() => setIsRegistrationsModalOpen(true)}

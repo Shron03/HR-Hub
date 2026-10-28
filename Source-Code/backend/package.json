@@ -8,9 +8,10 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "seed": "node seed.js",
-    "test": "node test/api.test.js",
+    "test": "node test/demo_workspace_isolation.test.js",
+    "test:isolation": "node test/demo_workspace_isolation.test.js",
     "test:security": "node test/security_hardening.test.js",
-    "test:all": "node test/api.test.js && node test/security_hardening.test.js"
+    "test:all": "node test/demo_workspace_isolation.test.js && node test/security_hardening.test.js"
   },
   "keywords": [
     "hr-analytics",

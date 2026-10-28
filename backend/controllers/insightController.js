@@ -2,7 +2,8 @@ import Employee from '../models/Employee.js';
 
 export const getInsights = async (req, res) => {
   try {
-    const employees = await Employee.find({});
+    const workspaceId = req.workspaceId;
+    const employees = await Employee.find({ workspaceId });
 
     // 1. Employees Needing Improvement (Overall score < 75 or category Needs Improvement / Critical Attention)
     const needingImprovement = employees
@@ -102,15 +103,12 @@ export const getInsights = async (req, res) => {
 
     res.json({
       success: true,
-      summary: {
-        totalUnderperforming: needingImprovement.length,
-        totalHighPerformers: highPerformers.length,
-        totalAttendanceWarnings: attendanceWarnings.length
-      },
-      needingImprovement,
-      highPerformers,
-      attendanceWarnings,
-      productivitySuggestions
+      insights: {
+        needingImprovement,
+        highPerformers,
+        attendanceWarnings,
+        productivitySuggestions
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

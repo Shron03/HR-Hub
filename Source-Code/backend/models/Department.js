@@ -1,10 +1,14 @@
 import mongoose from 'mongoose';
 
 const DepartmentSchema = new mongoose.Schema({
-  name: {
+  workspaceId: {
     type: String,
     required: true,
-    unique: true
+    index: true
+  },
+  name: {
+    type: String,
+    required: true
   },
   code: {
     type: String,
@@ -32,6 +36,8 @@ const DepartmentSchema = new mongoose.Schema({
     default: 85
   }
 }, { timestamps: true });
+
+DepartmentSchema.index({ workspaceId: 1, name: 1 }, { unique: true });
 
 const Department = mongoose.model('Department', DepartmentSchema);
 export default Department;

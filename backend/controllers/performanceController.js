@@ -1,17 +1,19 @@
 import mongoose from 'mongoose';
 import Employee from '../models/Employee.js';
 
-const findEmployee = async (id) => {
+const findEmployee = async (id, workspaceId) => {
+  if (!workspaceId) return null;
   if (mongoose.Types.ObjectId.isValid(id)) {
-    const emp = await Employee.findById(id);
+    const emp = await Employee.findOne({ _id: id, workspaceId });
     if (emp) return emp;
   }
-  return await Employee.findOne({ employeeId: id });
+  return await Employee.findOne({ employeeId: id, workspaceId });
 };
 
 export const updateEmployeeMetrics = async (req, res) => {
   try {
     const { id } = req.params;
+    const workspaceId = req.workspaceId;
     const {
       tasksGiven,
       tasksCompleted,
@@ -23,7 +25,7 @@ export const updateEmployeeMetrics = async (req, res) => {
       status
     } = req.body;
 
-    const employee = await findEmployee(id);
+    const employee = await findEmployee(id, workspaceId);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
@@ -67,13 +69,14 @@ export const updateEmployeeMetrics = async (req, res) => {
 export const addTask = async (req, res) => {
   try {
     const { id } = req.params;
+    const workspaceId = req.workspaceId;
     const { title, project, deadline, priority, status, efficiencyRating } = req.body;
 
     if (!title || String(title).trim() === '') {
       return res.status(400).json({ success: false, message: 'Task title is required.' });
     }
 
-    const employee = await findEmployee(id);
+    const employee = await findEmployee(id, workspaceId);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
@@ -109,9 +112,9 @@ export const addTask = async (req, res) => {
 export const updateTaskStatus = async (req, res) => {
   try {
     const { employeeId, taskId } = req.params;
-    const { status, efficiencyRating } = req.body;
+    const workspaceId = req.workspaceId;
 
-    const employee = await findEmployee(employeeId);
+    const employee = await findEmployee(employeeId, workspaceId);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
@@ -158,8 +161,9 @@ export const updateTaskStatus = async (req, res) => {
 export const deleteTask = async (req, res) => {
   try {
     const { employeeId, taskId } = req.params;
+    const workspaceId = req.workspaceId;
 
-    const employee = await findEmployee(employeeId);
+    const employee = await findEmployee(employeeId, workspaceId);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }

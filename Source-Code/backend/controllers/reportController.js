@@ -1,13 +1,14 @@
 import Employee from '../models/Employee.js';
 import Department from '../models/Department.js';
-import { seedDatabase } from '../seed.js';
+import { seedWorkspaceData, resetWorkspaceData } from '../services/workspaceService.js';
 
 export const getMonthlyReportData = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { month = 'Dec' } = req.query;
 
-    const employees = await Employee.find({});
-    const departments = await Department.find({});
+    const employees = await Employee.find({ workspaceId });
+    const departments = await Department.find({ workspaceId });
 
     const totalHeadcount = employees.length;
     let totalScore = 0;
@@ -91,17 +92,27 @@ export const getMonthlyReportData = async (req, res) => {
 
 export const resetAndSeedDatabase = async (req, res) => {
   try {
-    if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DESTRUCTIVE_OPERATIONS !== 'true') {
-      return res.status(403).json({
-        success: false,
-        message: 'Database reset operation is disabled in production environment.'
+    const workspaceId = req.workspaceId || 'registered';
+
+    if (workspaceId === 'registered') {
+      if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DESTRUCTIVE_OPERATIONS !== 'true') {
+        return res.status(403).json({
+          success: false,
+          message: 'Database reset operation is disabled in production environment.'
+        });
+      }
+      const result = await seedWorkspaceData('registered');
+      return res.json({
+        success: true,
+        message: 'Registered workspace dataset successfully re-seeded',
+        result
       });
     }
 
-    const result = await seedDatabase();
+    const result = await resetWorkspaceData(workspaceId);
     res.json({
       success: true,
-      message: 'Database successfully re-seeded with demo dataset',
+      message: 'Demo workspace successfully re-seeded with baseline dataset',
       result
     });
   } catch (error) {

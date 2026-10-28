@@ -3,8 +3,9 @@ import Department from '../models/Department.js';
 
 export const getDashboardAnalytics = async (req, res) => {
   try {
-    const employees = await Employee.find({});
-    const departments = await Department.find({});
+    const workspaceId = req.workspaceId;
+    const employees = await Employee.find({ workspaceId });
+    const departments = await Department.find({ workspaceId });
 
     const totalHeadcount = employees.length;
     if (totalHeadcount === 0) {
@@ -156,7 +157,7 @@ export const getDashboardAnalytics = async (req, res) => {
     });
 
     // 4. Top Performers Leaderboard (Top 6)
-    const topPerformers = await Employee.find({})
+    const topPerformers = await Employee.find({ workspaceId })
       .sort({ 'metrics.overallScore': -1 })
       .limit(6)
       .select('employeeId name role department avatar metrics performanceCategory');

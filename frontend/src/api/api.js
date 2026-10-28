@@ -1,5 +1,6 @@
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 const TOKEN_KEY = 'hrhub_token';
+const WORKSPACE_KEY = 'hrhub_workspace_id';
 
 export const getToken = () => {
   try {
@@ -20,11 +21,32 @@ export const setToken = (token) => {
   } catch {}
 };
 
+export const getWorkspaceId = () => {
+  try {
+    return localStorage.getItem(WORKSPACE_KEY) || sessionStorage.getItem(WORKSPACE_KEY) || null;
+  } catch {
+    return null;
+  }
+};
+
+export const setWorkspaceId = (workspaceId) => {
+  try {
+    if (workspaceId) {
+      localStorage.setItem(WORKSPACE_KEY, workspaceId);
+      sessionStorage.setItem(WORKSPACE_KEY, workspaceId);
+    } else {
+      localStorage.removeItem(WORKSPACE_KEY);
+      sessionStorage.removeItem(WORKSPACE_KEY);
+    }
+  } catch {}
+};
+
 /**
- * Universal authenticated fetch helper that attaches Bearer token and handles 401s
+ * Universal authenticated fetch helper that attaches Bearer token and workspace identifier
  */
 const authFetch = async (endpoint, options = {}) => {
   const token = getToken();
+  const workspaceId = getWorkspaceId();
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers
@@ -32,6 +54,10 @@ const authFetch = async (endpoint, options = {}) => {
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  if (workspaceId) {
+    headers['x-demo-workspace-id'] = workspaceId;
   }
 
   const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -52,18 +78,48 @@ const authFetch = async (endpoint, options = {}) => {
 };
 
 export const api = {
-  // Authentication & Session
-  async demoLogin(role = 'HR Director') {
-    const res = await fetch(`${API_BASE}/auth/demo-login`, {
+  // Demo Workspace Session Management
+  async getDemoSession(role = 'HR Director') {
+    const existingWorkspaceId = getWorkspaceId();
+    const res = await fetch(`${API_BASE}/demo/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ role })
+      body: JSON.stringify({ role, workspaceId: existingWorkspaceId })
     });
     const data = await res.json();
     if (data.success && data.token) {
       setToken(data.token);
+      if (data.workspaceId) {
+        setWorkspaceId(data.workspaceId);
+      }
     }
     return data;
+  },
+
+  async switchDemoRole(role) {
+    const data = await authFetch('/demo/switch-role', {
+      method: 'POST',
+      body: JSON.stringify({ role })
+    });
+    if (data.success && data.token) {
+      setToken(data.token);
+    }
+    return data;
+  },
+
+  async resetDemoWorkspace() {
+    const data = await authFetch('/demo/reset', {
+      method: 'POST'
+    });
+    if (data.success && data.token) {
+      setToken(data.token);
+    }
+    return data;
+  },
+
+  // Authentication & Session
+  async demoLogin(role = 'HR Director') {
+    return this.getDemoSession(role);
   },
 
   async login(email, password) {
@@ -75,6 +131,7 @@ export const api = {
     const data = await res.json();
     if (data.success && data.token) {
       setToken(data.token);
+      setWorkspaceId('registered');
     }
     return data;
   },

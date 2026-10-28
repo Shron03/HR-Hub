@@ -1,7 +1,9 @@
 import User from '../models/User.js';
 import Employee from '../models/Employee.js';
 import Notification from '../models/Notification.js';
-import { generateToken } from '../config/jwt.js';
+import { signRegisteredToken } from '../config/jwt.js';
+import { startDemoSession } from './demoController.js';
+import { ensureWorkspaceExists } from '../services/workspaceService.js';
 
 const getInitials = (name) => {
   if (!name) return 'HR';
@@ -44,20 +46,26 @@ export const login = async (req, res) => {
       });
     }
 
-    // Look up associated employee profile
-    const emp = await Employee.findOne({ email: user.email.toLowerCase() });
+    // Ensure baseline data exists for registered scope
+    await ensureWorkspaceExists('registered');
+
+    // Look up associated employee profile in registered scope
+    const emp = await Employee.findOne({ workspaceId: 'registered', email: user.email.toLowerCase() });
     const employeeId = emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null);
 
-    const token = generateToken({
+    const token = signRegisteredToken({
       id: user._id.toString(),
       role: user.role,
+      employeeId,
+      name: user.name,
       email: user.email,
-      employeeId
+      department: user.department
     });
 
     res.json({
       success: true,
       token,
+      workspaceId: 'registered',
       user: {
         id: user._id,
         name: user.name,
@@ -66,6 +74,8 @@ export const login = async (req, res) => {
         department: user.department,
         initials: getInitials(user.name),
         employeeId,
+        workspaceId: 'registered',
+        isDemo: false,
         status: emp?.status || 'Active'
       }
     });
@@ -74,56 +84,11 @@ export const login = async (req, res) => {
   }
 };
 
+/**
+ * Public demo login entrypoint: provisions or resumes isolated demo workspace session
+ */
 export const demoLogin = async (req, res) => {
-  try {
-    const { role } = req.body;
-    const allowedRoles = ['HR Director', 'Engineering Manager', 'Employee'];
-    const targetRole = allowedRoles.includes(role) ? role : 'HR Director';
-
-    let user = await User.findOne({ role: targetRole, approvalStatus: 'Approved' });
-    if (!user) {
-      user = await User.findOne({ role: targetRole });
-    }
-    if (!user) {
-      user = await User.findOne({ approvalStatus: 'Approved' });
-    }
-    if (!user) {
-      user = await User.findOne();
-    }
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'No demo users found. Please seed the database.' });
-    }
-
-    const emp = await Employee.findOne({ email: user.email.toLowerCase() }) ||
-      (user.role === 'Employee' ? await Employee.findOne({ employeeId: 'EMP-1001' }) : null);
-
-    const employeeId = emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null);
-
-    const token = generateToken({
-      id: user._id.toString(),
-      role: user.role,
-      email: user.email,
-      employeeId
-    });
-
-    res.json({
-      success: true,
-      token,
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        department: user.department,
-        initials: getInitials(user.name),
-        employeeId,
-        status: emp?.status || 'Active'
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
+  return startDemoSession(req, res);
 };
 
 export const register = async (req, res) => {
@@ -154,6 +119,7 @@ export const register = async (req, res) => {
     const assignedDepartment = department ? department.trim() : 'Engineering';
 
     const user = await User.create({
+      workspaceId: 'registered',
       name: name.trim(),
       email: normalizedEmail,
       password,
@@ -163,8 +129,9 @@ export const register = async (req, res) => {
       approvalStatus: 'Pending'
     });
 
-    // Create Notification for HR Director
+    // Create Notification for HR Director in registered workspace
     await Notification.create({
+      workspaceId: 'registered',
       title: 'New Account Registration Pending Approval',
       message: `${user.name} (${user.role}, ${user.department}) has registered and is awaiting authorization.`,
       category: 'registration',
@@ -219,13 +186,14 @@ export const approveRegistration = async (req, res) => {
     user.approvalStatus = 'Approved';
     await user.save();
 
-    // Check if an Employee record already exists for this email
-    let emp = await Employee.findOne({ email: user.email.toLowerCase() });
+    // Check if an Employee record already exists for this email in registered workspace
+    let emp = await Employee.findOne({ workspaceId: 'registered', email: user.email.toLowerCase() });
     if (!emp) {
-      const count = await Employee.countDocuments();
+      const count = await Employee.countDocuments({ workspaceId: 'registered' });
       const employeeId = `EMP-${1000 + count + 1}`;
 
       emp = new Employee({
+        workspaceId: 'registered',
         employeeId,
         name: user.name,
         email: user.email.toLowerCase(),
@@ -245,8 +213,9 @@ export const approveRegistration = async (req, res) => {
       await emp.save();
     }
 
-    // Create Notification
+    // Create Notification in registered workspace
     await Notification.create({
+      workspaceId: 'registered',
       title: 'Registration Approved',
       message: `${user.name} has been approved and enrolled as ${emp.role} (${emp.employeeId}).`,
       category: 'registration',
@@ -287,12 +256,30 @@ export const rejectRegistration = async (req, res) => {
 
 export const getMe = async (req, res) => {
   try {
+    if (req.user.isDemo) {
+      return res.json({
+        success: true,
+        user: {
+          id: req.user.id,
+          name: req.user.name,
+          email: req.user.email,
+          role: req.user.role,
+          department: req.user.department,
+          initials: getInitials(req.user.name),
+          employeeId: req.user.employeeId,
+          workspaceId: req.user.workspaceId,
+          isDemo: true,
+          status: 'Active'
+        }
+      });
+    }
+
     const user = await User.findById(req.user.id).select('-password');
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
-    const emp = await Employee.findOne({ email: user.email.toLowerCase() });
+    const emp = await Employee.findOne({ workspaceId: 'registered', email: user.email.toLowerCase() });
     const employeeId = emp ? emp.employeeId : (user.role === 'Employee' ? 'EMP-1001' : null);
 
     res.json({
@@ -305,6 +292,8 @@ export const getMe = async (req, res) => {
         department: user.department,
         initials: getInitials(user.name),
         employeeId,
+        workspaceId: 'registered',
+        isDemo: false,
         status: emp?.status || 'Active'
       }
     });

@@ -1,6 +1,11 @@
 import mongoose from 'mongoose';
 
 const NotificationSchema = new mongoose.Schema({
+  workspaceId: {
+    type: String,
+    required: true,
+    index: true
+  },
   title: {
     type: String,
     required: true

@@ -1,10 +1,14 @@
 import mongoose from 'mongoose';
 
 const DocumentSchema = new mongoose.Schema({
-  docId: {
+  workspaceId: {
     type: String,
     required: true,
-    unique: true
+    index: true
+  },
+  docId: {
+    type: String,
+    required: true
   },
   title: {
     type: String,
@@ -57,5 +61,7 @@ const DocumentSchema = new mongoose.Schema({
     default: 0
   }
 }, { timestamps: true });
+
+DocumentSchema.index({ workspaceId: 1, docId: 1 }, { unique: true });
 
 export default mongoose.model('Document', DocumentSchema);

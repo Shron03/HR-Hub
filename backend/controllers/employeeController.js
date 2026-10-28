@@ -1,15 +1,17 @@
+import crypto from 'crypto';
 import mongoose from 'mongoose';
 import Employee from '../models/Employee.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
-import { seedDatabase, clearEmployeesOnly } from '../seed.js';
+import { seedWorkspaceData, resetWorkspaceData, touchWorkspace } from '../services/workspaceService.js';
 
-const findEmployee = async (id) => {
+const findEmployee = async (id, workspaceId) => {
+  if (!workspaceId) return null;
   if (mongoose.Types.ObjectId.isValid(id)) {
-    const emp = await Employee.findById(id);
+    const emp = await Employee.findOne({ _id: id, workspaceId });
     if (emp) return emp;
   }
-  return await Employee.findOne({ employeeId: id });
+  return await Employee.findOne({ employeeId: id, workspaceId });
 };
 
 export const evaluatePresence = (emp) => {
@@ -47,10 +49,21 @@ export const evaluatePresence = (emp) => {
 
 export const seedDemoEmployees = async (req, res) => {
   try {
-    const result = await seedDatabase();
+    const workspaceId = req.workspaceId || 'registered';
+
+    if (workspaceId === 'registered') {
+      const result = await seedWorkspaceData('registered');
+      return res.json({
+        success: true,
+        message: 'Registered workspace dataset loaded successfully',
+        ...result
+      });
+    }
+
+    const result = await resetWorkspaceData(workspaceId);
     res.json({
       success: true,
-      message: 'Demo dataset of 15 employees loaded successfully',
+      message: 'Demo dataset of 15 employees reloaded successfully',
       ...result
     });
   } catch (error) {
@@ -60,18 +73,23 @@ export const seedDemoEmployees = async (req, res) => {
 
 export const clearAllEmployeesData = async (req, res) => {
   try {
-    if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DESTRUCTIVE_OPERATIONS !== 'true') {
-      return res.status(403).json({
-        success: false,
-        message: 'Destructive database purge operations are disabled in production environment.'
-      });
+    const workspaceId = req.workspaceId;
+
+    if (workspaceId === 'registered') {
+      if (process.env.NODE_ENV === 'production' && process.env.ENABLE_DESTRUCTIVE_OPERATIONS !== 'true') {
+        return res.status(403).json({
+          success: false,
+          message: 'Destructive database purge operations are disabled in production environment.'
+        });
+      }
     }
 
-    const result = await clearEmployeesOnly();
+    await Employee.deleteMany({ workspaceId });
+    await Notification.deleteMany({ workspaceId });
+
     res.json({
       success: true,
-      message: 'All employee records removed. System is in empty state.',
-      ...result
+      message: `All employee records removed for workspace: ${workspaceId}. System is in empty state.`
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -80,9 +98,12 @@ export const clearAllEmployeesData = async (req, res) => {
 
 export const getEmployees = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
+    await touchWorkspace(workspaceId);
+
     const { department, category, status, search, sort = 'score-desc', page = 1, limit = 100 } = req.query;
 
-    const query = {};
+    const query = { workspaceId };
 
     if (department && department !== 'All') {
       query.department = department;
@@ -163,7 +184,8 @@ export const getEmployees = async (req, res) => {
 export const getEmployeeById = async (req, res) => {
   try {
     const { id } = req.params;
-    const employee = await findEmployee(id);
+    const workspaceId = req.workspaceId;
+    const employee = await findEmployee(id, workspaceId);
 
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
@@ -223,14 +245,15 @@ export const getEmployeeById = async (req, res) => {
 
 export const createEmployee = async (req, res) => {
   try {
-    const data = { ...req.body };
+    const workspaceId = req.workspaceId;
+    const data = { ...req.body, workspaceId };
 
     if (!data.name || !data.email) {
       return res.status(400).json({ success: false, message: 'Name and email are required fields.' });
     }
 
     if (!data.employeeId) {
-      const count = await Employee.countDocuments();
+      const count = await Employee.countDocuments({ workspaceId });
       data.employeeId = `EMP-${1000 + count + 1}`;
     }
 
@@ -253,22 +276,27 @@ export const createEmployee = async (req, res) => {
     const employee = new Employee(data);
     await employee.save();
 
-    // Create user account if not existing
-    const existingUser = await User.findOne({ email: employee.email.toLowerCase() });
-    if (!existingUser) {
-      await User.create({
-        name: employee.name,
-        email: employee.email.toLowerCase(),
-        password: 'password123',
-        role: employee.role.includes('Director') ? 'HR Director' : employee.role.includes('Manager') ? 'Engineering Manager' : 'Employee',
-        department: employee.department,
-        isApproved: true,
-        approvalStatus: 'Approved'
-      });
+    // In registered workspace, auto-provision user account if needed using secure random invite token
+    if (!req.isDemo) {
+      const existingUser = await User.findOne({ email: employee.email.toLowerCase() });
+      if (!existingUser) {
+        const randomTempPassword = crypto.randomBytes(16).toString('hex');
+        await User.create({
+          workspaceId: 'registered',
+          name: employee.name,
+          email: employee.email.toLowerCase(),
+          password: randomTempPassword,
+          role: employee.role.includes('Director') ? 'HR Director' : employee.role.includes('Manager') ? 'Engineering Manager' : 'Employee',
+          department: employee.department,
+          isApproved: true,
+          approvalStatus: 'Approved'
+        });
+      }
     }
 
-    // Create Notification
+    // Create Notification in this workspace
     await Notification.create({
+      workspaceId,
       title: 'New Employee Profile Created',
       message: `${employee.name} (${employee.role}, ${employee.department}) was added to the organization roster (${employee.employeeId}).`,
       category: 'system',
@@ -288,7 +316,8 @@ export const createEmployee = async (req, res) => {
 export const updateEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const employee = await findEmployee(id);
+    const workspaceId = req.workspaceId;
+    const employee = await findEmployee(id, workspaceId);
 
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
@@ -368,13 +397,14 @@ export const updateEmployee = async (req, res) => {
 export const deleteEmployee = async (req, res) => {
   try {
     const { id } = req.params;
-    const employee = await findEmployee(id);
+    const workspaceId = req.workspaceId;
+    const employee = await findEmployee(id, workspaceId);
 
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
     }
 
-    await Employee.findByIdAndDelete(employee._id);
+    await Employee.findOneAndDelete({ _id: employee._id, workspaceId });
 
     res.json({
       success: true,
@@ -388,12 +418,18 @@ export const deleteEmployee = async (req, res) => {
 
 export const bulkImportEmployees = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { employees } = req.body;
     if (!Array.isArray(employees) || employees.length === 0) {
       return res.status(400).json({ success: false, message: 'Please provide an array of employee objects' });
     }
 
-    const inserted = await Employee.insertMany(employees);
+    const scopedEmployees = employees.map(emp => ({
+      ...emp,
+      workspaceId
+    }));
+
+    const inserted = await Employee.insertMany(scopedEmployees);
     res.status(201).json({
       success: true,
       message: `Successfully imported ${inserted.length} employees`,

@@ -3,8 +3,9 @@ import Notification from '../models/Notification.js';
 
 export const getTickets = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { status, category } = req.query;
-    const filter = {};
+    const filter = { workspaceId };
 
     // IDOR Protection: If caller is regular employee, restrict strictly to their own tickets
     if (req.user?.role === 'Employee') {
@@ -33,6 +34,7 @@ export const getTickets = async (req, res) => {
 
 export const createTicket = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { employeeName, department, category, priority, subject, description } = req.body;
     let employeeId = req.body.employeeId;
 
@@ -45,10 +47,11 @@ export const createTicket = async (req, res) => {
       employeeId = req.user.employeeId;
     }
 
-    const count = await Ticket.countDocuments();
+    const count = await Ticket.countDocuments({ workspaceId });
     const ticketId = `TCK-${1000 + count + 1}`;
 
     const ticket = new Ticket({
+      workspaceId,
       ticketId,
       employeeId: employeeId || 'EMP-1001',
       employeeName: employeeName || 'Employee',
@@ -62,8 +65,9 @@ export const createTicket = async (req, res) => {
 
     await ticket.save();
 
-    // Notify HR Director
+    // Notify HR Director in this workspace
     await Notification.create({
+      workspaceId,
       title: 'New HR Help Desk Ticket Raised',
       message: `${ticket.employeeName} (${ticket.department}) raised ticket #${ticketId}: "${ticket.subject}" [Priority: ${ticket.priority}].`,
       category: 'system',
@@ -84,9 +88,10 @@ export const createTicket = async (req, res) => {
 export const updateTicketStatus = async (req, res) => {
   try {
     const { id } = req.params;
+    const workspaceId = req.workspaceId;
     const { status, resolutionNote, callerName } = req.body;
 
-    const ticket = await Ticket.findById(id);
+    const ticket = await Ticket.findOne({ _id: id, workspaceId });
     if (!ticket) {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
     }
@@ -105,8 +110,9 @@ export const updateTicketStatus = async (req, res) => {
 
     await ticket.save();
 
-    // Notify the employee who created the ticket
+    // Notify the employee who created the ticket in this workspace
     await Notification.create({
+      workspaceId,
       title: `HR Ticket #${ticket.ticketId} Updated`,
       message: `Your ticket status is now "${ticket.status}". ${resolutionNote ? `Resolution Note: ${resolutionNote}` : ''}`,
       category: 'system',
@@ -128,13 +134,14 @@ export const updateTicketStatus = async (req, res) => {
 export const addTicketReply = async (req, res) => {
   try {
     const { id } = req.params;
+    const workspaceId = req.workspaceId;
     const { sender, message } = req.body;
 
     if (!message || !message.trim()) {
       return res.status(400).json({ success: false, message: 'Reply message cannot be empty' });
     }
 
-    const ticket = await Ticket.findById(id);
+    const ticket = await Ticket.findOne({ _id: id, workspaceId });
     if (!ticket) {
       return res.status(404).json({ success: false, message: 'Ticket not found' });
     }

@@ -1,7 +1,7 @@
 import { verifyToken } from '../config/jwt.js';
 
 /**
- * Middleware: Verify JWT Bearer token and populate req.user
+ * Middleware: Verify JWT Bearer token and populate req.user, req.workspaceId, and req.isDemo
  */
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -24,12 +24,23 @@ export const authenticateToken = (req, res, next) => {
 
   try {
     const decoded = verifyToken(token);
+    const isDemo = decoded.type === 'demo';
+    const workspaceId = decoded.workspaceId || (isDemo ? decoded.workspaceId : 'registered');
+
     req.user = {
-      id: decoded.id,
+      id: decoded.id || decoded.userId || decoded.employeeId || 'demo-user',
+      type: decoded.type || 'registered',
+      workspaceId,
       role: decoded.role,
       email: decoded.email,
-      employeeId: decoded.employeeId || null
+      name: decoded.name,
+      department: decoded.department,
+      employeeId: decoded.employeeId || null,
+      isDemo
     };
+    req.workspaceId = workspaceId;
+    req.isDemo = isDemo;
+
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -101,4 +112,46 @@ export const requireSelfOrRoles = (paramKey, ...allowedRoles) => {
       message: 'Access denied: You are only authorized to access your own employee records.'
     });
   };
+};
+
+/**
+ * Middleware: Require registered user account; blocks demo sessions from sensitive real-user governance
+ */
+export const requireRegisteredUser = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required.'
+    });
+  }
+
+  if (req.user.isDemo || req.user.type !== 'registered') {
+    return res.status(403).json({
+      success: false,
+      message: 'Access restricted to registered accounts. Demo sessions cannot perform administrative user governance.'
+    });
+  }
+
+  next();
+};
+
+/**
+ * Middleware: Require active demo session; blocks registered users from tampering with demo session controls
+ */
+export const requireDemoSession = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: 'Authentication required.'
+    });
+  }
+
+  if (!req.user.isDemo || req.user.workspaceId === 'registered') {
+    return res.status(403).json({
+      success: false,
+      message: 'This operation is reserved for demo sessions.'
+    });
+  }
+
+  next();
 };

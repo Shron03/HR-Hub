@@ -1,10 +1,14 @@
 import mongoose from 'mongoose';
 
 const TimeLogSchema = new mongoose.Schema({
-  logId: {
+  workspaceId: {
     type: String,
     required: true,
-    unique: true
+    index: true
+  },
+  logId: {
+    type: String,
+    required: true
   },
   employeeId: {
     type: String,
@@ -46,5 +50,7 @@ const TimeLogSchema = new mongoose.Schema({
     default: ''
   }
 }, { timestamps: true });
+
+TimeLogSchema.index({ workspaceId: 1, logId: 1 }, { unique: true });
 
 export default mongoose.model('TimeLog', TimeLogSchema);

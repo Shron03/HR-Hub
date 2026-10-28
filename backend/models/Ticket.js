@@ -8,10 +8,14 @@ const ReplySchema = new mongoose.Schema({
 });
 
 const TicketSchema = new mongoose.Schema({
-  ticketId: {
+  workspaceId: {
     type: String,
     required: true,
-    unique: true
+    index: true
+  },
+  ticketId: {
+    type: String,
+    required: true
   },
   employeeId: {
     type: String,
@@ -66,5 +70,7 @@ const TicketSchema = new mongoose.Schema({
   },
   replies: [ReplySchema]
 }, { timestamps: true });
+
+TicketSchema.index({ workspaceId: 1, ticketId: 1 }, { unique: true });
 
 export default mongoose.model('Ticket', TicketSchema);

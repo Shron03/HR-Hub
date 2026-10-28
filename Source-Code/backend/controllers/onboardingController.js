@@ -3,8 +3,9 @@ import Notification from '../models/Notification.js';
 
 export const getOnboardingCases = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { type, status } = req.query;
-    const filter = {};
+    const filter = { workspaceId };
     if (type && type !== 'All') filter.type = type;
     if (status && status !== 'All') filter.status = status;
 
@@ -22,13 +23,14 @@ export const getOnboardingCases = async (req, res) => {
 
 export const createOnboardingCase = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { type, candidateName, employeeId, role, department, managerName, targetDate, notes } = req.body;
 
     if (!candidateName || !role || !department || !targetDate) {
       return res.status(400).json({ success: false, message: 'Candidate name, role, department, and target date are required' });
     }
 
-    const count = await OnboardingCase.countDocuments();
+    const count = await OnboardingCase.countDocuments({ workspaceId });
     const prefix = type === 'Offboarding' ? 'OFF' : 'ONB';
     const caseId = `${prefix}-${1000 + count + 1}`;
 
@@ -54,6 +56,7 @@ export const createOnboardingCase = async (req, res) => {
     const progressPercent = Math.round((completedCount / defaultChecklist.length) * 100);
 
     const newCase = new OnboardingCase({
+      workspaceId,
       caseId,
       type: type || 'Onboarding',
       candidateName: candidateName.trim(),
@@ -71,6 +74,7 @@ export const createOnboardingCase = async (req, res) => {
     await newCase.save();
 
     await Notification.create({
+      workspaceId,
       title: `${newCase.type} Process Initiated`,
       message: `${newCase.type} workflow created for ${newCase.candidateName} (${newCase.role}, ${newCase.department}).`,
       category: 'system',
@@ -91,8 +95,9 @@ export const createOnboardingCase = async (req, res) => {
 export const toggleChecklistTask = async (req, res) => {
   try {
     const { id, taskId } = req.params;
+    const workspaceId = req.workspaceId;
 
-    const currentCase = await OnboardingCase.findById(id);
+    const currentCase = await OnboardingCase.findOne({ _id: id, workspaceId });
     if (!currentCase) {
       return res.status(404).json({ success: false, message: 'Case not found' });
     }
@@ -129,9 +134,10 @@ export const toggleChecklistTask = async (req, res) => {
 export const updateCaseStatus = async (req, res) => {
   try {
     const { id } = req.params;
+    const workspaceId = req.workspaceId;
     const { status, notes } = req.body;
 
-    const currentCase = await OnboardingCase.findById(id);
+    const currentCase = await OnboardingCase.findOne({ _id: id, workspaceId });
     if (!currentCase) {
       return res.status(404).json({ success: false, message: 'Case not found' });
     }

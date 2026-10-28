@@ -9,16 +9,41 @@ HR Hub is a full-stack human resources analytics, performance management, and wo
 
 ## Architectural Highlights
 
-* Role-Based Access Control (RBAC):
-  * HR Director: Administrative control across employee roster, salary/compensation calibration, designation updates, leave approval queues, user registration approvals, and direct appraisal notes.
-  * Engineering Manager: Team oversight, timesheet approvals, performance metric calibration, and organization tree navigation.
-  * Employee Self-Service: Dedicated portal for personal scorecard, task throughput tracking, leave application submission, support ticket creation, and appraisal feedback inbox. Peer employee salaries and private documents are protected from unauthorized view.
+### Two-Tier Experience: Public Interactive Demo vs. Registered Accounts
 
-* Real-Time KPI Simulator & Analytics Engine:
-  * Dynamic weighted scoring: Task Completion Rate (40%), HR Review Score (40%), Attendance Compliance Rate (20%).
-  * Exact decimal review score tuner (0.0 to 10.0 scale, 0.1 increments).
-  * Automated performance band categorization: Exceptional (92%+), Strong Performer (82-91%), Meets Expectations (70-81%), Needs Improvement (60-69%), Critical Attention (<60%).
+HR Hub provides two distinct, architecturally separated experiences:
 
+1. **Public Interactive Demo (Zero Registration Required)**
+   * Instant Visitor Onboarding: Visitors can enter the demonstration immediately without creating an account or providing credentials.
+   * Isolated Demo Workspaces: Every visitor receives an independent workspace identified by an unguessable session token (`demo-*`). Visitor edits, additions, and deletions are strictly isolated from other visitors and from the registered database.
+   * Safe Instant Role Switching: Visitors can switch freely between three roles in the top navigation bar to explore the application from different perspectives:
+     * **HR Director:** Full administrative capabilities within the visitor's isolated workspace (add/edit/delete synthetic employees, calibrate salaries and KPIs, approve leaves, manage onboarding, publish policy documents).
+     * **Engineering Manager:** Manager-level capabilities (team supervision, timesheet approvals, performance metric calibration).
+     * **Employee:** Employee self-service capabilities (personal scorecard, leave applications, support tickets, timesheet logs).
+   * Workspace Persistence & Reset: A visitor's modifications persist within their workspace across browser reloads. The "Reset Demo" button instantly restores only that visitor's workspace to the baseline 15-employee synthetic dataset without affecting other visitors or registered users.
+   * Automatic TTL Cleanup: Demo workspaces that are inactive for more than 7 days are automatically pruned via MongoDB TTL indexing.
+
+2. **Registered Accounts (Separate Protected Production Experience)**
+   * Dedicated registered database scope (`workspaceId: 'registered'`).
+   * Standard cryptographic JWT authentication with password hashing (`bcryptjs`).
+   * Registration Approval Queue: Public self-registrations default to the `Employee` role with `approvalStatus: 'Pending'` and require explicit authorization by a registered HR Director before system access is granted.
+   * Complete Privilege Separation: Demo tokens cannot access registered administrative routes (e.g. pending registrations or registered employee account management). Registered accounts cannot be reset via public demo controls.
+
+---
+
+## Real-Time KPI Simulator & Operations Modules
+
+* Dynamic Weighted Scoring:
+  * Task Completion Rate (40%)
+  * HR Review Score (40%)
+  * Attendance Compliance Rate (20%)
+* Exact decimal review score tuner (0.0 to 10.0 scale, 0.1 increments).
+* Automated performance band categorization:
+  * Exceptional (92%+)
+  * Strong Performer (82-91%)
+  * Meets Expectations (70-81%)
+  * Needs Improvement (60-69%)
+  * Critical Attention (<60%)
 * Workforce Operations Modules:
   * Time Off & Leave Management: Automated presence sync transitioning approved employees to "On Leave".
   * Help Desk & Support Tickets: Multi-category support tickets with HR resolution replies.
@@ -30,35 +55,40 @@ HR Hub is a full-stack human resources analytics, performance management, and wo
 
 ## Security Architecture & Defensive Controls
 
-1. Server-Side JWT Authentication:
-   * All API routes (except public login, registration, and health check) require a verified cryptographic JSON Web Token (`Authorization: Bearer <token>`).
-   * Token claims include user ID, verified role, email, and associated employee ID.
-   * `JWT_SECRET` is strictly required in production; the server refuses to boot if the secret is omitted. In development mode, an ephemeral random 32-byte secret is generated per process run without static hardcoded fallbacks.
+1. Server-Side Scoping & Workspace Isolation:
+   * Every database read, write, update, delete, aggregate, and notification is strictly filtered by `{ workspaceId }`.
+   * Cross-tenant access attempts are rejected at the database query level.
 
-2. Strict Role-Based Authorization:
-   * Administrative routes (`/api/employees/clear-all`, `/api/employees/seed-demo`, `/api/employees`, `/api/reports/seed/reset`, `/api/auth/registrations/:id/approve`) require the `HR Director` role.
-   * Leave approvals are restricted exclusively to the `HR Director`. Client-supplied role claims are completely ignored.
-   * Timesheet and ticket approvals are restricted to `HR Director` and `Engineering Manager`.
+2. Server-Side JWT Authentication & Role Verification:
+   * All protected endpoints require a verified cryptographic JSON Web Token (`Authorization: Bearer <token>`).
+   * Token claims include user ID, verified role, email, employee ID, and workspace ID. Client-supplied role claims are never trusted.
+   * `JWT_SECRET` is strictly loaded via `dotenv/config` at application launch. In development mode, an ephemeral 256-bit secret is generated per process run if omitted.
 
-3. Broken Object-Level Authorization (BOLA/IDOR) Defense:
+3. Strict Role-Based Authorization (RBAC):
+   * Administrative routes require the `HR Director` role.
+   * Leave approvals are restricted exclusively to `HR Director`.
+   * Timesheet approvals are restricted to `HR Director` and `Engineering Manager`.
+   * Sensitive real-user registration approvals require a registered account (`requireRegisteredUser`); demo HR Director tokens receive `403 Forbidden`.
+
+4. Broken Object-Level Authorization (BOLA/IDOR) Defense:
    * Regular employees querying tickets, timelogs, or feedback are strictly scoped to their own `employeeId`.
    * Cross-employee requests for private appraisal feedback are rejected with `403 Forbidden`.
    * Salary and compensation breakdown fields are automatically redacted when employees view colleague profiles.
 
-4. Registration Privilege Escalation Prevention:
-   * Public registration ignores any client-supplied role parameter and forces the role to `Employee`.
-   * New accounts default to `approvalStatus: 'Pending'` and are blocked from login until an HR Director authorizes access.
+5. Document Access Policy Enforcement:
+   * Server-side filtering ensures regular employees can only access documents marked "All Employees".
+   * Documents marked "Management Only" or "Confidential" are completely hidden from regular employees.
 
-5. Database Safety in Production:
-   * In production (`NODE_ENV=production`), `MONGODB_URI` is required. The system will fail fast rather than silently falling back to an in-memory database to prevent unintended data loss.
-   * Destructive purge operations are guarded by `ENABLE_DESTRUCTIVE_OPERATIONS`.
+6. Registration Privilege Escalation Prevention:
+   * Public registration ignores client-supplied role parameters and forces the role to `Employee`.
+   * New accounts default to `approvalStatus: 'Pending'` and are blocked from login until authorized by an HR Director.
 
-6. Network Hardening & Rate Limiting:
-   * Configurable CORS allowlist (`CLIENT_URL`) restricts external cross-origin requests.
-   * Strict rate limiting is applied to `/api/auth/login`, `/api/auth/register`, and `/api/auth/demo-login` to prevent credential stuffing and brute-force attempts.
-   * Production error handlers suppress stack traces and internal runtime paths.
+7. Database Safety & CORS Hardening:
+   * Configurable CORS allowlist (`CLIENT_URL`) with automatic support for Render (`*.onrender.com`) and Vercel (`*.vercel.app`) preview deployments.
+   * Rate limiting on authentication and demo session endpoints prevents resource exhaustion.
+   * Production error handlers suppress stack traces and internal paths.
 
-7. Synthetic Demo Data Notice:
+8. Synthetic Demo Data Notice:
    * All employee records, names, phone numbers, and compensation numbers in the seed dataset are entirely synthetic and generated for demonstration purposes.
 
 ---
@@ -111,24 +141,19 @@ PORT=5000
 NODE_ENV=development
 JWT_SECRET=replace_with_a_secure_random_key_min_32_characters
 MONGODB_URI=
-ALLOW_IN_MEMORY_DB=false
+ALLOW_IN_MEMORY_DB=true
 CLIENT_URL=http://localhost:5173,http://localhost:5000
 ENABLE_DESTRUCTIVE_OPERATIONS=false
 ```
 
-### 3. Run Verification Tests
+### 3. Run Automated Regression Test Suites
 ```bash
-# Run complete test verification suite:
+# Run all test suites (Demo Isolation + Security Hardening):
 npm run test:all
 
-# Or run individual verification suites:
-npm run test:security  # 14 security & authorization tests
-npm run test:backend   # API integration tests
-npm run test:stage2    # Database persistence & task management
-npm run test:stage3    # KPI math precision & boundary conditions
-npm run test:stage5    # Concurrent load & resilience
-npm run test:stage6    # User registration approvals & notifications
-npm run test:stage7    # Enterprise help desk, onboarding, documents & time logs
+# Or run individual test suites:
+npm run test:isolation  # 12 demo workspace isolation & role switching tests
+npm run test:security   # 14 security & authorization tests
 ```
 
 ### 4. Start Development Servers
@@ -154,20 +179,23 @@ npm run start:frontend
 
 | Method | Endpoint | Authorization | Description |
 | :--- | :--- | :--- | :--- |
-| `POST` | `/api/auth/login` | Public (Rate Limited) | Authenticate user credentials and return JWT |
-| `POST` | `/api/auth/demo-login` | Public (Rate Limited) | Fast demo authentication for evaluation |
+| `POST` | `/api/demo/session` | Public (Rate Limited) | Create or resume isolated visitor demo workspace |
+| `POST` | `/api/demo/switch-role` | Authenticated (Demo) | Switch role instantly within visitor demo workspace |
+| `POST` | `/api/demo/reset` | Authenticated (Demo) | Reset visitor workspace back to baseline synthetic data |
+| `POST` | `/api/auth/login` | Public (Rate Limited) | Authenticate registered user credentials and return JWT |
+| `POST` | `/api/auth/demo-login` | Public (Rate Limited) | Backward-compatible entrypoint to demo session |
 | `POST` | `/api/auth/register` | Public (Rate Limited) | Submit registration (queued for HR approval) |
 | `GET` | `/api/auth/me` | Authenticated | Retrieve authenticated user profile |
-| `GET` | `/api/auth/registrations/pending` | HR Director | Retrieve pending account registrations |
-| `PUT` | `/api/auth/registrations/:id/approve` | HR Director | Approve registration and provision employee |
-| `PUT` | `/api/auth/registrations/:id/reject` | HR Director | Reject pending registration |
+| `GET` | `/api/auth/registrations/pending` | HR Director (Registered) | Retrieve pending account registrations |
+| `PUT` | `/api/auth/registrations/:id/approve` | HR Director (Registered) | Approve registration and provision employee |
+| `PUT` | `/api/auth/registrations/:id/reject` | HR Director (Registered) | Reject pending registration |
 | `GET` | `/api/employees` | Authenticated | Retrieve workforce directory (peer salary redacted for employees) |
 | `GET` | `/api/employees/:id` | Authenticated | Retrieve individual profile with recommendations |
 | `POST` | `/api/employees` | HR Director | Create a new employee record |
 | `PUT` | `/api/employees/:id` | HR Director | Update role, salary, department, or presence |
 | `DELETE` | `/api/employees/:id` | HR Director | Delete employee profile |
-| `POST` | `/api/employees/seed-demo` | HR Director | Load 15-employee baseline demo dataset |
-| `POST` | `/api/employees/clear-all` | HR Director (Guarded) | Purge employee records |
+| `POST` | `/api/employees/seed-demo` | HR Director | Re-seed active workspace baseline dataset |
+| `POST` | `/api/employees/clear-all` | HR Director (Guarded) | Purge employee records in active workspace |
 | `PUT` | `/api/performance/:id/metrics` | HR Director / Manager | Recalculate employee performance metrics |
 | `POST` | `/api/performance/:id/tasks` | HR Director / Manager | Assign sprint task |
 | `PUT` | `/api/performance/:id/tasks/:taskId` | Authenticated (Self/Mgr/HR) | Update task completion status |
@@ -180,7 +208,7 @@ npm run start:frontend
 | `GET` | `/api/timelogs` | Authenticated | Retrieve timesheet logs (scoped to self for employees) |
 | `POST` | `/api/timelogs` | Authenticated | Submit hours worked |
 | `PATCH` | `/api/timelogs/:id/status` | HR Director / Manager | Approve timesheet submission |
-| `GET` | `/api/documents` | Authenticated | Browse corporate document repository |
+| `GET` | `/api/documents` | Authenticated | Browse corporate document repository (access policy enforced) |
 | `POST` | `/api/documents` | HR Director | Publish corporate policy document |
 | `GET` | `/api/onboarding` | HR Director / Manager | Retrieve onboarding/offboarding workflows |
 | `POST` | `/api/onboarding` | HR Director | Initiate onboarding or offboarding case |
@@ -191,29 +219,9 @@ npm run start:frontend
 
 ---
 
-## Demo Accounts & Role Permissions
+## Known Demo Considerations
 
-The platform includes switchable demo accounts for portfolio exploration:
-
-* **HR Director** (`hr@hrhub.in` / `password123`)
-  * Full administrative governance across all workforce modules.
-  * Can modify salaries, approve leaves, authorize user registrations, and publish documents.
-
-* **Engineering Manager** (`manager@hrhub.in` / `password123`)
-  * Departmental supervision across Engineering team members.
-  * Can assign tasks, tune metrics, review timesheets, and resolve support tickets.
-  * Cannot modify salaries or approve leave requests.
-
-* **Employee** (`aarav@hrhub.in` / `password123`)
-  * Self-service access to personal scorecard, attendance, and task list.
-  * Can apply for leave, submit timesheets, and raise tickets.
-  * Cannot access other employees' tickets, timesheets, feedback, or salary figures.
-
----
-
-## Known Demo Limitations & Considerations
-
-1. In-Memory Database Persistence:
+1. In-Memory Database Mode:
    * When running without an external `MONGODB_URI`, the server uses `mongodb-memory-server`. Any new records or metric updates persist across page reloads during the process runtime, but reset when the backend process restarts.
    * For persistent deployments, configure `MONGODB_URI` pointing to MongoDB Atlas.
 

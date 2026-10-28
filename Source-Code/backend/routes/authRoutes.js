@@ -9,7 +9,7 @@ import {
   approveRegistration,
   rejectRegistration
 } from '../controllers/authController.js';
-import { authenticateToken, authorizeRoles } from '../middleware/authMiddleware.js';
+import { authenticateToken, authorizeRoles, requireRegisteredUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
@@ -41,11 +41,11 @@ router.post('/demo-login', authLimiter, demoLogin);
 router.post('/register', registrationLimiter, register);
 router.get('/me', authenticateToken, getMe);
 
-// Privileged HR Director administrative routes
-router.get('/registrations/pending', authenticateToken, authorizeRoles('HR Director'), getPendingRegistrations);
-router.put('/registrations/:id/approve', authenticateToken, authorizeRoles('HR Director'), approveRegistration);
-router.post('/registrations/:id/approve', authenticateToken, authorizeRoles('HR Director'), approveRegistration);
-router.put('/registrations/:id/reject', authenticateToken, authorizeRoles('HR Director'), rejectRegistration);
-router.post('/registrations/:id/reject', authenticateToken, authorizeRoles('HR Director'), rejectRegistration);
+// Privileged HR Director administrative routes (strictly restricted to registered user admins)
+router.get('/registrations/pending', authenticateToken, authorizeRoles('HR Director'), requireRegisteredUser, getPendingRegistrations);
+router.put('/registrations/:id/approve', authenticateToken, authorizeRoles('HR Director'), requireRegisteredUser, approveRegistration);
+router.post('/registrations/:id/approve', authenticateToken, authorizeRoles('HR Director'), requireRegisteredUser, approveRegistration);
+router.put('/registrations/:id/reject', authenticateToken, authorizeRoles('HR Director'), requireRegisteredUser, rejectRegistration);
+router.post('/registrations/:id/reject', authenticateToken, authorizeRoles('HR Director'), requireRegisteredUser, rejectRegistration);
 
 export default router;

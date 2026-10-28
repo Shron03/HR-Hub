@@ -2,8 +2,14 @@ import Document from '../models/Document.js';
 
 export const getDocuments = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { category, search } = req.query;
-    const filter = {};
+    const filter = { workspaceId };
+
+    // Server-Side Role Enforcement: Regular employees can only access All Employees documents
+    if (req.user?.role === 'Employee') {
+      filter.accessLevel = 'All Employees';
+    }
 
     if (category && category !== 'All') {
       filter.category = category;
@@ -31,16 +37,18 @@ export const getDocuments = async (req, res) => {
 
 export const createDocument = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { title, category, fileName, fileSize, fileType, accessLevel, description, uploadedBy } = req.body;
 
     if (!title || !fileName) {
       return res.status(400).json({ success: false, message: 'Document title and file name are required' });
     }
 
-    const count = await Document.countDocuments();
+    const count = await Document.countDocuments({ workspaceId });
     const docId = `DOC-${1000 + count + 1}`;
 
     const doc = new Document({
+      workspaceId,
       docId,
       title: title.trim(),
       category: category || 'Company Policies',
@@ -68,7 +76,8 @@ export const createDocument = async (req, res) => {
 export const deleteDocument = async (req, res) => {
   try {
     const { id } = req.params;
-    const doc = await Document.findByIdAndDelete(id);
+    const workspaceId = req.workspaceId;
+    const doc = await Document.findOneAndDelete({ _id: id, workspaceId });
 
     if (!doc) {
       return res.status(404).json({ success: false, message: 'Document not found' });
@@ -86,10 +95,17 @@ export const deleteDocument = async (req, res) => {
 export const recordDownload = async (req, res) => {
   try {
     const { id } = req.params;
-    const doc = await Document.findByIdAndUpdate(id, { $inc: { downloadCount: 1 } }, { new: true });
+    const workspaceId = req.workspaceId;
+
+    const query = { _id: id, workspaceId };
+    if (req.user?.role === 'Employee') {
+      query.accessLevel = 'All Employees';
+    }
+
+    const doc = await Document.findOneAndUpdate(query, { $inc: { downloadCount: 1 } }, { new: true });
 
     if (!doc) {
-      return res.status(404).json({ success: false, message: 'Document not found' });
+      return res.status(404).json({ success: false, message: 'Document not found or access unauthorized' });
     }
 
     res.json({

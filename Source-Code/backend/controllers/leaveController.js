@@ -2,16 +2,18 @@ import mongoose from 'mongoose';
 import Employee from '../models/Employee.js';
 import Notification from '../models/Notification.js';
 
-const findEmployee = async (id) => {
+const findEmployee = async (id, workspaceId) => {
+  if (!workspaceId) return null;
   if (mongoose.Types.ObjectId.isValid(id)) {
-    const emp = await Employee.findById(id);
+    const emp = await Employee.findOne({ _id: id, workspaceId });
     if (emp) return emp;
   }
-  return await Employee.findOne({ employeeId: id });
+  return await Employee.findOne({ employeeId: id, workspaceId });
 };
 
 export const submitLeaveRequest = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { type, reason, startDate, endDate, days } = req.body;
     let targetEmployeeId = req.body.employeeId;
 
@@ -24,7 +26,7 @@ export const submitLeaveRequest = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Employee ID is required.' });
     }
 
-    const employee = await findEmployee(targetEmployeeId);
+    const employee = await findEmployee(targetEmployeeId, workspaceId);
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee profile not found' });
     }
@@ -42,8 +44,9 @@ export const submitLeaveRequest = async (req, res) => {
     employee.leaveRequests.unshift(leave);
     await employee.save();
 
-    // Create Notification for HR Director
+    // Create Notification for HR Director in this workspace
     await Notification.create({
+      workspaceId,
       title: 'New Time Off Application Submitted',
       message: `${employee.name} (${employee.department}) requested ${leave.days} day(s) of ${leave.type} (${startDate} to ${endDate}): "${reason}"`,
       category: 'leave_request',
@@ -64,7 +67,8 @@ export const submitLeaveRequest = async (req, res) => {
 
 export const getAllLeaveRequests = async (req, res) => {
   try {
-    const employees = await Employee.find({}, 'employeeId name department role leaveRequests status initials avatarBg');
+    const workspaceId = req.workspaceId;
+    const employees = await Employee.find({ workspaceId }, 'employeeId name department role leaveRequests status initials avatarBg');
 
     const allLeaves = [];
     const isEmployee = req.user?.role === 'Employee';
@@ -115,6 +119,7 @@ export const updateLeaveStatus = async (req, res) => {
   try {
     const { leaveId } = req.params;
     const { status, decisionNote } = req.body;
+    const workspaceId = req.workspaceId;
 
     // Server-Side Role Enforcement: Only HR Director is authorized to decide leave requests
     if (req.user?.role !== 'HR Director') {
@@ -128,7 +133,7 @@ export const updateLeaveStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid leave status supplied.' });
     }
 
-    const employee = await Employee.findOne({ 'leaveRequests._id': leaveId });
+    const employee = await Employee.findOne({ workspaceId, 'leaveRequests._id': leaveId });
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Time off record not found' });
     }
@@ -150,8 +155,9 @@ export const updateLeaveStatus = async (req, res) => {
 
     await employee.save();
 
-    // Create Notification specifically for the Employee
+    // Create Notification specifically for the Employee in this workspace
     await Notification.create({
+      workspaceId,
       title: `Time Off Request ${status}`,
       message: `Your ${leave.days}-day ${leave.type} (${leave.startDate} to ${leave.endDate}) has been ${status.toLowerCase()} by HR Director.${decisionNote ? ` Note: "${decisionNote}"` : ''}`,
       category: 'leave_decision',
@@ -173,15 +179,15 @@ export const updateLeaveStatus = async (req, res) => {
 
 export const getNotifications = async (req, res) => {
   try {
-    // Derive role and employee identity strictly from verified token
+    const workspaceId = req.workspaceId;
     const role = req.user?.role || 'Employee';
     const employeeId = req.user?.employeeId || null;
     const userEmail = req.user?.email || '';
 
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
 
-    // Auto-prune notifications older than 3 days
-    await Notification.deleteMany({ createdAt: { $lt: threeDaysAgo } });
+    // Auto-prune notifications older than 3 days in this workspace
+    await Notification.deleteMany({ workspaceId, createdAt: { $lt: threeDaysAgo } });
 
     // Build role and employee-specific query
     const queryConditions = [
@@ -197,6 +203,7 @@ export const getNotifications = async (req, res) => {
     }
 
     const query = {
+      workspaceId,
       createdAt: { $gte: threeDaysAgo },
       $or: queryConditions
     };
@@ -232,9 +239,10 @@ export const getNotifications = async (req, res) => {
 export const markNotificationRead = async (req, res) => {
   try {
     const { id } = req.params;
+    const workspaceId = req.workspaceId;
     const userIdentifier = req.user?.email || req.user?.employeeId || req.user?.role;
 
-    const notif = await Notification.findById(id);
+    const notif = await Notification.findOne({ _id: id, workspaceId });
     if (!notif) {
       return res.status(404).json({ success: false, message: 'Notification not found' });
     }
@@ -252,12 +260,14 @@ export const markNotificationRead = async (req, res) => {
 
 export const markAllNotificationsRead = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const userIdentifier = req.user?.email || req.user?.employeeId || req.user?.role;
     const role = req.user?.role || 'ALL';
     const employeeId = req.user?.employeeId || null;
 
     const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
     const query = {
+      workspaceId,
       createdAt: { $gte: threeDaysAgo },
       $or: [
         { recipientRole: 'ALL' },

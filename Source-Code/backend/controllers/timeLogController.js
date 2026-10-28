@@ -3,8 +3,9 @@ import Notification from '../models/Notification.js';
 
 export const getTimeLogs = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { project, status } = req.query;
-    const filter = {};
+    const filter = { workspaceId };
 
     // IDOR Protection: Regular Employees can only view their own time logs
     if (req.user?.role === 'Employee') {
@@ -30,6 +31,7 @@ export const getTimeLogs = async (req, res) => {
 
 export const createTimeLog = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { employeeName, department, project, taskName, hours, date, notes } = req.body;
     let employeeId = req.body.employeeId;
 
@@ -42,10 +44,11 @@ export const createTimeLog = async (req, res) => {
       employeeId = req.user.employeeId;
     }
 
-    const count = await TimeLog.countDocuments();
+    const count = await TimeLog.countDocuments({ workspaceId });
     const logId = `LOG-${1000 + count + 1}`;
 
     const timeLog = new TimeLog({
+      workspaceId,
       logId,
       employeeId: employeeId || 'EMP-1001',
       employeeName: employeeName || 'Employee',
@@ -60,8 +63,9 @@ export const createTimeLog = async (req, res) => {
 
     await timeLog.save();
 
-    // Notify Engineering Manager
+    // Notify Engineering Manager in this workspace
     await Notification.create({
+      workspaceId,
       title: 'Timesheet Entry Submitted',
       message: `${timeLog.employeeName} logged ${timeLog.hours} hrs for "${timeLog.taskName}" on ${timeLog.project}.`,
       category: 'kpi_update',
@@ -82,13 +86,14 @@ export const createTimeLog = async (req, res) => {
 export const updateTimeLogStatus = async (req, res) => {
   try {
     const { id } = req.params;
+    const workspaceId = req.workspaceId;
     const { status } = req.body;
 
     if (!['Approved', 'Rejected', 'Pending Approval'].includes(status)) {
       return res.status(400).json({ success: false, message: 'Invalid timesheet status supplied.' });
     }
 
-    const log = await TimeLog.findById(id);
+    const log = await TimeLog.findOne({ _id: id, workspaceId });
     if (!log) {
       return res.status(404).json({ success: false, message: 'Timesheet entry not found' });
     }
@@ -98,7 +103,7 @@ export const updateTimeLogStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Timesheet entry marked as ${log.status}`,
+      message: `Timesheet entry marked as ${status}`,
       timeLog: log
     });
   } catch (error) {

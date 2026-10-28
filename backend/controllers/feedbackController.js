@@ -2,18 +2,20 @@ import mongoose from 'mongoose';
 import Employee from '../models/Employee.js';
 import Notification from '../models/Notification.js';
 
-const findEmployee = async (id) => {
+const findEmployee = async (id, workspaceId) => {
+  if (!workspaceId) return null;
   if (mongoose.Types.ObjectId.isValid(id)) {
-    const emp = await Employee.findById(id);
+    const emp = await Employee.findOne({ _id: id, workspaceId });
     if (emp) return emp;
   }
-  return await Employee.findOne({ employeeId: id });
+  return await Employee.findOne({ employeeId: id, workspaceId });
 };
 
 export const sendFeedback = async (req, res) => {
   try {
+    const workspaceId = req.workspaceId;
     const { employeeId, message, category, from } = req.body;
-    const employee = await findEmployee(employeeId);
+    const employee = await findEmployee(employeeId, workspaceId);
 
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });
@@ -24,7 +26,7 @@ export const sendFeedback = async (req, res) => {
     }
 
     const feedback = {
-      from: from || (req.user?.role === 'HR Director' ? 'Priya Sharma (HR Director)' : 'Rahul Verma (Engineering Manager)'),
+      from: from || (req.user?.role === 'HR Director' ? 'Priya Sharma (HR Director)' : 'Rajesh Verma (Engineering Manager)'),
       message: message.trim(),
       category: ['Recognition', 'Coaching', 'Milestone', 'Critical'].includes(category) ? category : 'Recognition',
       date: new Date()
@@ -34,8 +36,9 @@ export const sendFeedback = async (req, res) => {
     employee.feedbacks.unshift(feedback);
     await employee.save();
 
-    // Create Notification specifically for the Employee
+    // Create Notification specifically for the Employee in this workspace
     await Notification.create({
+      workspaceId,
       title: 'New Performance Feedback Note',
       message: `${feedback.from} shared an official ${feedback.category} note: "${feedback.message}"`,
       category: 'appraisal_feedback',
@@ -57,7 +60,8 @@ export const sendFeedback = async (req, res) => {
 export const getEmployeeFeedbacks = async (req, res) => {
   try {
     const { employeeId } = req.params;
-    const employee = await findEmployee(employeeId);
+    const workspaceId = req.workspaceId;
+    const employee = await findEmployee(employeeId, workspaceId);
 
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found' });

@@ -12,10 +12,14 @@ const ChecklistItemSchema = new mongoose.Schema({
 });
 
 const OnboardingCaseSchema = new mongoose.Schema({
-  caseId: {
+  workspaceId: {
     type: String,
     required: true,
-    unique: true
+    index: true
+  },
+  caseId: {
+    type: String,
+    required: true
   },
   type: {
     type: String,
@@ -65,5 +69,7 @@ const OnboardingCaseSchema = new mongoose.Schema({
     default: ''
   }
 }, { timestamps: true });
+
+OnboardingCaseSchema.index({ workspaceId: 1, caseId: 1 }, { unique: true });
 
 export default mongoose.model('OnboardingCase', OnboardingCaseSchema);

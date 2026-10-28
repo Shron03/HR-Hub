@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
@@ -17,4 +18,51 @@ export const generateToken = (payload, expiresIn = '7d') => {
 
 export const verifyToken = (token) => {
   return jwt.verify(token, JWT_SECRET);
+};
+
+export const signDemoToken = ({ workspaceId, role, employeeId, name, email, department }) => {
+  const roleNameMap = {
+    'HR Director': 'Priya Sharma (Demo)',
+    'Engineering Manager': 'Rajesh Verma (Demo)',
+    'Employee': 'Aarav Patel (Demo)'
+  };
+  const roleDeptMap = {
+    'HR Director': 'Human Resources',
+    'Engineering Manager': 'Engineering',
+    'Employee': 'Engineering'
+  };
+  const roleEmpIdMap = {
+    'HR Director': null,
+    'Engineering Manager': 'EMP-1005',
+    'Employee': 'EMP-1001'
+  };
+
+  const resolvedRole = ['HR Director', 'Engineering Manager', 'Employee'].includes(role) ? role : 'HR Director';
+  const resolvedName = name || roleNameMap[resolvedRole];
+  const resolvedDept = department || roleDeptMap[resolvedRole];
+  const resolvedEmpId = employeeId !== undefined ? employeeId : roleEmpIdMap[resolvedRole];
+  const resolvedEmail = email || `demo-${resolvedRole.toLowerCase().replace(/\s+/g, '-')}@hrhub.internal`;
+
+  return generateToken({
+    type: 'demo',
+    workspaceId,
+    role: resolvedRole,
+    employeeId: resolvedEmpId,
+    name: resolvedName,
+    email: resolvedEmail,
+    department: resolvedDept
+  });
+};
+
+export const signRegisteredToken = ({ id, role, employeeId, name, email, department }) => {
+  return generateToken({
+    type: 'registered',
+    workspaceId: 'registered',
+    id,
+    role,
+    employeeId: employeeId || null,
+    name,
+    email,
+    department
+  });
 };

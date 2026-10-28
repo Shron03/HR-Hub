@@ -32,6 +32,7 @@ export default function Navbar({
   onOpenNotifications,
   unreadNotificationsCount = 0,
   onResetDemo,
+  onSwitchDemoRole,
   isOperatingData = false,
   pendingRegistrationsCount = 0,
   onOpenRegistrationsModal,
@@ -191,7 +192,7 @@ export default function Navbar({
                 HR<span className="text-blue-600">Hub</span>
               </span>
               <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-md bg-blue-50 text-blue-700 border border-blue-200">
-                Enterprise
+                {currentUser?.isDemo ? 'Interactive Demo' : 'Enterprise'}
               </span>
             </div>
             <p className="text-[11px] text-slate-500 hidden sm:block">
@@ -203,8 +204,8 @@ export default function Navbar({
         {/* Action Controls & User Identity */}
         <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
           
-          {/* HR Pending Registration Approvals Badge */}
-          {isHR && pendingRegistrationsCount > 0 && (
+          {/* HR Pending Registration Approvals Badge (Registered accounts only) */}
+          {isHR && !currentUser?.isDemo && pendingRegistrationsCount > 0 && (
             <button
               onClick={onOpenRegistrationsModal}
               className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 text-xs font-bold transition-all shadow-xs cursor-pointer"
@@ -215,7 +216,36 @@ export default function Navbar({
             </button>
           )}
 
-          {/* Reset Demo Button (Placed next to notification icon) */}
+          {/* Interactive Role Switcher for Demo Mode */}
+          {currentUser?.isDemo ? (
+            <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-xl border border-blue-200 bg-blue-50 text-xs shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="font-semibold text-blue-900 hidden lg:inline">Demo Role:</span>
+              <select
+                value={currentUser.role}
+                onChange={(e) => onSwitchDemoRole && onSwitchDemoRole(e.target.value)}
+                disabled={isOperatingData}
+                className="bg-transparent text-blue-950 font-bold text-xs py-0.5 px-1 rounded border-none focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer disabled:opacity-60"
+                title="Switch demo role instantly within your isolated workspace"
+              >
+                <option value="HR Director">HR Director (Full Admin)</option>
+                <option value="Engineering Manager">Engineering Manager</option>
+                <option value="Employee">Employee (Self-Service)</option>
+              </select>
+            </div>
+          ) : (
+            <div
+              className={`hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl border text-xs font-medium ${roleBadge.color}`}
+              title="Active registered session"
+            >
+              <span className={`w-2 h-2 rounded-full ${roleBadge.dot}`} />
+              <RoleIcon className="w-3.5 h-3.5" />
+              <span className="font-bold text-slate-900">{currentUser?.role || 'HR Director'}</span>
+              <span className="text-[11px] text-slate-500 font-normal">Active</span>
+            </div>
+          )}
+
+          {/* Reset Demo Button */}
           <button
             onClick={onResetDemo}
             disabled={isOperatingData}
@@ -239,17 +269,6 @@ export default function Navbar({
               </span>
             )}
           </button>
-
-          {/* Static Active Role Status Badge (No dropdown switcher; logout required to switch) */}
-          <div
-            className={`hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-xl border text-xs font-medium ${roleBadge.color}`}
-            title="Active role session. To access another role, sign out and authenticate."
-          >
-            <span className={`w-2 h-2 rounded-full ${roleBadge.dot}`} />
-            <RoleIcon className="w-3.5 h-3.5" />
-            <span className="font-bold text-slate-900">{currentUser?.role || 'HR Director'}</span>
-            <span className="text-[11px] text-slate-500 font-normal">Active</span>
-          </div>
 
           {/* Current User Identity & Sign Out Button */}
           <div className="flex items-center space-x-2 pl-2 border-l border-slate-200">

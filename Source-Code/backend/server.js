@@ -1,7 +1,7 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import morgan from 'morgan';
-import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -11,6 +11,7 @@ import Employee from './models/Employee.js';
 import { seedDatabase } from './seed.js';
 
 import authRoutes from './routes/authRoutes.js';
+import demoRoutes from './routes/demoRoutes.js';
 import employeeRoutes from './routes/employeeRoutes.js';
 import performanceRoutes from './routes/performanceRoutes.js';
 import analyticsRoutes from './routes/analyticsRoutes.js';
@@ -22,8 +23,6 @@ import ticketRoutes from './routes/ticketRoutes.js';
 import onboardingRoutes from './routes/onboardingRoutes.js';
 import documentRoutes from './routes/documentRoutes.js';
 import timeLogRoutes from './routes/timeLogRoutes.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -82,7 +81,7 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-demo-workspace-id']
 }));
 
 app.use(express.json({ limit: '5mb' }));
@@ -94,6 +93,7 @@ if (process.env.NODE_ENV !== 'test') {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/demo', demoRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/analytics', analyticsRoutes);
@@ -168,13 +168,13 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    // Check if initial seed is needed
-    const count = await Employee.countDocuments();
+    // Check if initial seed is needed for registered scope
+    const count = await Employee.countDocuments({ workspaceId: 'registered' });
     if (count === 0) {
       console.log('Database empty on startup. Auto-seeding initial HR Hub dataset...');
       await seedDatabase();
     } else {
-      console.log(`Database already populated with ${count} employee records.`);
+      console.log(`Database already populated with ${count} registered employee records.`);
     }
 
     const HOST = process.env.HOST || '0.0.0.0';

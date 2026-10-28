@@ -56,10 +56,14 @@ const LeaveRequestSchema = new mongoose.Schema({
 });
 
 const EmployeeSchema = new mongoose.Schema({
+  workspaceId: {
+    type: String,
+    required: true,
+    index: true
+  },
   employeeId: {
     type: String,
     required: true,
-    unique: true,
     trim: true
   },
   name: {
@@ -70,7 +74,6 @@ const EmployeeSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, 'Employee email is required'],
-    unique: true,
     trim: true,
     lowercase: true
   },
@@ -220,6 +223,9 @@ EmployeeSchema.pre('save', function (next) {
 
   next();
 });
+
+EmployeeSchema.index({ workspaceId: 1, employeeId: 1 }, { unique: true });
+EmployeeSchema.index({ workspaceId: 1, email: 1 }, { unique: true });
 
 const Employee = mongoose.model('Employee', EmployeeSchema);
 export default Employee;
